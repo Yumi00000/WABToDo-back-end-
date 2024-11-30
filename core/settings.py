@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     # CUSTOM APPS
     "users.apps.UsersConfig",
     "tasks.apps.TasksConfig",
-    "comments.apps.CommentsConfig"
+    "comments.apps.CommentsConfig",
     # BASE
     'django.contrib.admin',
     'django.contrib.auth',

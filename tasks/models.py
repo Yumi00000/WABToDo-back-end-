@@ -1,5 +1,5 @@
 from django.db import models
 
 
-class Task(models.Model):
-    ...
+# class Task(models.Model):
+#     ...
