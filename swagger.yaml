@@ -27,6 +27,11 @@ paths:
                 isTeamMember:
                   type: boolean
                   default: false
+              required:
+                - firstName
+                - lastName
+                - email
+                - password
 
       responses:
         '201':
@@ -56,6 +61,9 @@ paths:
                   type: string
                 password:
                   type: string
+              required:
+                - email
+                - password
 
       responses:
         '201':
@@ -76,3 +84,117 @@ paths:
             application/json:
               example:
                 detail: Invalid email or password.
+
+  /api/users/dashboard/:
+    get:
+      summary: Get orders aka projects list
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication
+
+      responses:
+        '200':
+          description: List active of projects. If the user has no orders - return an empty list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    owner:
+                      type: string
+                    createdAt:
+                      type: string
+                      format: date
+
+              example:
+                - {
+                  id: 1,
+                  name: project1,
+                  owner: John,
+                  createdAt: 30-11-2024
+                }
+                - {
+                  id: 2,
+                  name: project2,
+                  owner: John,
+                  createdAt: 13-12-2024
+                }
+
+  /api/orders/create/:
+    post:
+      summary: Creating an order aka a project
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the project
+                description:
+                  type: string
+                  description: Detailed description of the project
+                deadline:
+                  type: string
+                  format: date
+                  description: Project deadline in ISO 8601 format (DD-MM-YYYY)
+              required:
+                - name
+                - description
+                - deadline
+      responses:
+        '201':
+          description: Order successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  owner:
+                    type: integer
+                    description: ID of the user who created the order (automatically assigned)
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  deadline:
+                    type: string
+                    format: date
+                example:
+                  id: 42
+                  owner: 1
+                  name: New Project
+                  description: Project description
+                  deadline: 2024-12-31
+
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 403
+                  message: Login to continue
+
