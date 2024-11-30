@@ -118,19 +118,22 @@ paths:
                     createdAt:
                       type: string
                       format: date
-
+                    accepted:
+                      type: boolean
               example:
                 - {
                   id: 1,
                   name: project1,
                   owner: John,
-                  createdAt: 2024-11-30
+                  createdAt: 2024-11-30,
+                  accepted: true
                 }
                 - {
                   id: 2,
                   name: project2,
                   owner: John,
-                  createdAt: 2024-11-30
+                  createdAt: 2024-11-30,
+                  accepted: true
                 }
 
   /api/orders/create/:
