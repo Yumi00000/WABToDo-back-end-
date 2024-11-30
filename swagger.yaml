@@ -27,6 +27,9 @@ paths:
                 isTeamMember:
                   type: boolean
                   default: false
+                isAdmin:
+                  type: boolean
+                  default: false
               required:
                 - firstName
                 - lastName
@@ -87,7 +90,7 @@ paths:
 
   /api/users/dashboard/:
     get:
-      summary: Get orders aka projects list
+      summary: Getting the list of user's orders aka projects
       parameters:
         - in: header
           name: Authorization
@@ -121,13 +124,13 @@ paths:
                   id: 1,
                   name: project1,
                   owner: John,
-                  createdAt: 30-11-2024
+                  createdAt: 2024-11-30
                 }
                 - {
                   id: 2,
                   name: project2,
                   owner: John,
-                  createdAt: 13-12-2024
+                  createdAt: 2024-11-30
                 }
 
   /api/orders/create/:
@@ -156,7 +159,7 @@ paths:
                 deadline:
                   type: string
                   format: date
-                  description: Project deadline in ISO 8601 format (DD-MM-YYYY)
+                  description: Project deadline in ISO 8601 format (YYYY-MM-DD)
               required:
                 - name
                 - description
@@ -181,12 +184,44 @@ paths:
                   deadline:
                     type: string
                     format: date
+                  createdAt:
+                    type: string
+                    format: date
+                  updatedAt:
+                    type: string
+                    format: date
+                  acceptedAt:
+                    type: string
+                    format: date
+                  accepted:
+                    type: boolean
+                    default: false
+                  team:
+                    type: integer
+                    description: team ID
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        description:
+                          type: string
                 example:
                   id: 42
                   owner: 1
                   name: New Project
                   description: Project description
-                  deadline: 2024-12-31
+                  deadline: 2025-11-30
+                  createdAt: 2024-11-30
+                  updatedAt: null
+                  acceptedAt: null
+                  accepted: false
+                  team: null
+                  tasks: null
 
         '403':
           description: User not authorized
@@ -198,3 +233,163 @@ paths:
                   status: 403
                   message: Login to continue
 
+  /api/orders/edit/:
+    patch:
+      summary: Edit order details
+      description: Request for user to change order details himself
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                description:
+                  type: string
+                deadline:
+                  type: string
+                  format: date
+              required:
+                - id
+      responses:
+        '200':
+          description: Status of the updated order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  deadline:
+                    type: string
+                    format: date
+                  updatedAt:
+                    type: string
+                    format: date
+                    description: Set automatically when a request is sent
+                example:
+                  id: 1
+                  name: New Project Name
+                  description: New description
+                  deadline: 2026-11-30
+                  updatedAt: 2024-11-30
+        '400':
+          description: Stay on the same page
+          content:
+            application/json:
+              example:
+                message: "Entered data is not valid"
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 403
+                  message: Login to continue
+
+  /api/orders/management/:
+    get:
+      summary: Get list of incoming orders
+      description: The list used by the platform administration to accept orders and assign the team that will fulfill the order
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication
+
+      responses:
+        '200':
+          description: Return list of new orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    owner:
+                      type: string
+                    createdAt:
+                      type: string
+                      format: date
+
+              example:
+                - {
+                  id: 1,
+                  name: project1,
+                  owner: John,
+                  createdAt: 2024-11-30
+                }
+                - {
+                  id: 2,
+                  name: project2,
+                  owner: John,
+                  createdAt: 2024-11-30
+                }
+
+    patch:
+      summary: Management of incoming orders, change the status of an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accepted:
+                  type: boolean
+                teamId:
+                  type: integer
+              required:
+                - accepted
+                - teamId
+              example:
+                accepted: true
+                teamId: 1
+
+      responses:
+        '200':
+          description: Status of the updated order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  owner:
+                    type: integer
+                    description: ID of the user who created the order (automatically assigned)
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  deadline:
+                    type: string
+                    format: date
+                  accepted:
+                    type: boolean
+                    default: false
+                example:
+                  id: 1
+                  name: New Project
+                  accepted: true
+                  acceptedAt: 2024-11-30
+                  teamId: 1
