@@ -13,3 +13,6 @@ class Task(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="tasks")
     status = models.CharField(max_length=11, default="pending")
     deadline = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Task title: {self.title}"

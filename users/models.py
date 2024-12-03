@@ -18,11 +18,17 @@ class CustomUser(AbstractUser):
     is_team_member = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
 
+    def __str__(self):
+        return f"user_id: {self.id} | username: {self.username},"
+
 
 class Team(models.Model):
     leader = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="team_leader")
     members = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="team_as_member")
     status = models.CharField(max_length=11, default="available")
+
+    def __str__(self):
+        return f"team_id: {self.id} | status: {self.status}"
 
 
 class CustomAuthToken(models.Model):
