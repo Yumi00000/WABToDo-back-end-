@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import jwt
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.timezone import now
 
 from core import settings
 
@@ -58,7 +59,7 @@ class CustomAuthToken(models.Model):
         return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
     def is_valid(self):
-        return self.expires_at > datetime.now()
+        return self.expires_at > now()
 
     def __str__(self):
         return f"Token owner {self.user.username} - token: {self.key}"
