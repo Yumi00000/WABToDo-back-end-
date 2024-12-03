@@ -7,3 +7,4 @@ router = routers.DefaultRouter()
 router.register(r"registration", views.RegistrationView, basename="register"),
 
 urlpatterns = router.urls
+urlpatterns += [path("login/", views.LoginView.as_view(), name="login")]

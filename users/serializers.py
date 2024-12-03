@@ -1,4 +1,5 @@
 import phonenumbers
+from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -10,11 +11,13 @@ class RegistrationSerializer(serializers.ModelSerializer):
     firstName = serializers.CharField(source="first_name", required=True)
     lastName = serializers.CharField(source="last_name", required=True)
     email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())])
-    phoneNumber = serializers.CharField(source="phone_number", required=False)
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     isTeamMember = serializers.BooleanField(source="is_team_member", required=False, default=False)
     isAdmin = serializers.BooleanField(source="is_admin", required=False, default=False)
+    phoneNumber = serializers.CharField(
+        source="phone_number", required=False, validators=[UniqueValidator(queryset=CustomUser.objects.all())]
+    )
 
     class Meta:
         model = CustomUser
@@ -54,6 +57,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
             is_admin=validated_data.get("is_admin", False),
         )
         user.set_password(validated_data["password"])
+        user.save()
 
         return user
 
@@ -68,3 +72,23 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
         except phonenumbers.NumberParseException:
             raise serializers.ValidationError({"phone_number": "Invalid phone number format."})
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+    user_agent = serializers.CharField(required=True)
+
+    def validate(self, data: dict) -> dict | None:
+        username = data["username"]
+        password = data["password"]
+
+        if not username or not password:
+            raise serializers.ValidationError("To login you must provide both username and password.")
+
+        user = authenticate(username=username, password=password)
+        if not user:
+            raise serializers.ValidationError("Invalid username or password.")
+
+        data["user"] = user
+        return data
