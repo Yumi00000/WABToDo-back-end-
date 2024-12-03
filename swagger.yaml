@@ -14,6 +14,9 @@ paths:
             schema:
               type: object
               properties:
+                username:
+                  type: string
+                  uniqueItems: true
                 firstName:
                   type: string
                 lastName:
@@ -23,6 +26,8 @@ paths:
                 phoneNumber:
                   type: string
                 password:
+                  type: string
+                password2:
                   type: string
                 isTeamMember:
                   type: boolean
@@ -35,6 +40,18 @@ paths:
                 - lastName
                 - email
                 - password
+                - password2
+
+              example:
+                {
+                    username: TheFirstUser,
+                    firstName: User,
+                    lastName: NotUser,
+                    email: theuseremail@gmail.com,
+                    phoneNumber: "+1234567890",
+                    password: userpassword,
+                    password2: userpassword,
+                }
 
       responses:
         '201':
