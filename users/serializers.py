@@ -7,8 +7,8 @@ from users.models import CustomUser
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
-    firstName = serializers.CharField(source='first_name', required=True)
-    lastName = serializers.CharField(source='last_name', required=True)
+    firstName = serializers.CharField(source="first_name", required=True)
+    lastName = serializers.CharField(source="last_name", required=True)
     email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())])
     phoneNumber = serializers.CharField(source="phone_number", required=False)
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
