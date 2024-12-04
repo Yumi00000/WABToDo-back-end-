@@ -44,13 +44,13 @@ paths:
 
               example:
                 {
-                    username: TheFirstUser,
-                    firstName: User,
-                    lastName: NotUser,
-                    email: theuseremail@gmail.com,
-                    phoneNumber: "+1234567890",
-                    password: userpassword,
-                    password2: userpassword,
+                  username: TheFirstUser,
+                  firstName: User,
+                  lastName: NotUser,
+                  email: theuseremail@gmail.com,
+                  phoneNumber: "+1234567890",
+                  password: userpassword,
+                  password2: userpassword,
                 }
 
       responses:
@@ -364,6 +364,7 @@ paths:
                   createdAt: 2024-11-30
                 }
 
+  /api/orders/management/id:
     patch:
       summary: Management of incoming orders, change the status of an order
       requestBody:
@@ -413,3 +414,57 @@ paths:
                   accepted: true
                   acceptedAt: 2024-11-30
                   teamId: 1
+
+  /api/users/teams/create:
+    post:
+      summary: Creating an team
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                leader:
+                  type: integer
+                  description: User id
+                members:
+                  type: array
+                  items:
+                    type: integer
+                  description: List of user IDs to be added to the team
+                status:
+                  type: string
+                  default: available
+                  description: Status of the team
+              required:
+                - leader
+                - members
+            example:
+              leader: 1
+              members: [ 2, 3, 4 ]
+              status: available
+
+      responses:
+        '201':
+          description: Team successfully created
+          content:
+            application/json:
+              example:
+                team_id: 12
+                leader: 1
+                members: [ 2, 3, 4 ]
+                status: available
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              example:
+                detail: "Invalid input data"
