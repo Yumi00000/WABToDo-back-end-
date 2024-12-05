@@ -4,6 +4,8 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
+from orders.models import Order
+from orders.serializers import OrderSerializer
 from users.models import CustomUser
 
 
@@ -92,3 +94,10 @@ class LoginSerializer(serializers.Serializer):
 
         data["user"] = user
         return data
+
+
+class DashboardSerializer(OrderSerializer):
+    name = serializers.CharField(read_only=True)
+    owner = serializers.CharField(source="owner.first_name", read_only=True)
+    createdAt = serializers.DateTimeField(source="created_at", read_only=True)
+    accepted = serializers.BooleanField(read_only=True)
