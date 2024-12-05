@@ -226,10 +226,19 @@ paths:
                       properties:
                         id:
                           type: integer
-                        name:
+                        title:
                           type: string
                         description:
                           type: string
+                        executor:
+                          type: string
+                          description: Executor name
+                        status:
+                          type: string
+                          default: pending
+                        deadline:
+                          type: string
+                          format: date
                 example:
                   id: 42
                   owner: 1
@@ -251,7 +260,7 @@ paths:
                 type: object
                 example:
                   status: 403
-                  message: Login to continue
+                  message: Authentication credentials were not provided.
 
   /api/orders/edit/:
     patch:
