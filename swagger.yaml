@@ -262,7 +262,7 @@ paths:
                   status: 403
                   message: Authentication credentials were not provided.
 
-  /api/orders/edit/:
+  /api/orders/edit/<id>:
     patch:
       summary: Edit order details
       description: Request for user to change order details himself
@@ -273,8 +273,6 @@ paths:
             schema:
               type: object
               properties:
-                id:
-                  type: integer
                 name:
                   type: string
                 description:
@@ -282,8 +280,7 @@ paths:
                 deadline:
                   type: string
                   format: date
-              required:
-                - id
+
       responses:
         '200':
           description: Status of the updated order

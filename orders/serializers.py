@@ -46,3 +46,10 @@ class CreateOrderSerializer(OrderSerializer):
         )
         order.save()
         return order
+
+
+class UpdateOrderSerializer(OrderSerializer):
+    id = serializers.IntegerField(required=True, write_only=True)
+    name = serializers.CharField()
+    description = serializers.CharField()
+    deadline = serializers.DateField()
