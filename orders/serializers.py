@@ -34,8 +34,26 @@ class OrderSerializer(serializers.ModelSerializer):
         tasks = Task.objects.filter(order=obj)
         return TaskSerializer(tasks, many=True).data
 
+    def validate(self, attrs):
+        self._validate_name(attrs.get("name"))
+        self._validate_description(attrs.get("description"))
+        return attrs
+
+    def _validate_name(self, name):
+        if name is not None and len(name) < 5:
+            raise serializers.ValidationError({"name": "Name must be at least 5 characters long."})
+
+    def _validate_description(self, description):
+        if description is None:
+            return
+        if len(description) < 100:
+            raise serializers.ValidationError({"description": "Description must be at least 100 characters long."})
+        if len(description) > 3000:
+            raise serializers.ValidationError({"description": "Description must not exceed 3000 characters."})
+
 
 class CreateOrderSerializer(OrderSerializer):
+
     def create(self, validated_data):
         user = self.context["request"].user.id
         order = Order.objects.create(
@@ -49,7 +67,6 @@ class CreateOrderSerializer(OrderSerializer):
 
 
 class UpdateOrderSerializer(OrderSerializer):
-    id = serializers.IntegerField(required=True, write_only=True)
-    name = serializers.CharField()
-    description = serializers.CharField()
-    deadline = serializers.DateField()
+    name = serializers.CharField(required=False)
+    description = serializers.CharField(required=False)
+    deadline = serializers.DateField(required=False)
