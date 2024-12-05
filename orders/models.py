@@ -1,7 +1,6 @@
 from core import settings
 from django.db import models
 
-from tasks.models import Task
 from users.models import Team
 
 
@@ -11,11 +10,11 @@ class Order(models.Model):
     description = models.TextField()
     accepted = models.BooleanField(default=False)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="team_orders", null=True, blank=True)
-    tasks = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="task_orders", null=True, blank=True)
+    tasks = models.ManyToManyField("tasks.Task", related_name="orders", null=True, blank=True)
     deadline = models.DateField()
-    createdAt = models.DateTimeField(auto_now_add=True, blank=True)
-    updatedAt = models.DateTimeField(null=True, blank=True)
-    acceptedAt = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Order name: {self.name}"

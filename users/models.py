@@ -57,11 +57,7 @@ class CustomAuthToken(models.Model):
 
 
 class Team(models.Model):
-    leader = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE,
-        related_name="team_leader"
-    )
+    leader = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="team_leader")
     status = models.CharField(max_length=11, default="available")
 
     def __str__(self):
@@ -69,13 +65,5 @@ class Team(models.Model):
 
 
 class TeamMember(models.Model):
-    user = models.OneToOneField(
-        CustomUser,
-        on_delete=models.CASCADE,
-        related_name="team_member"
-    )
-    team = models.ForeignKey(
-        Team,
-        on_delete=models.CASCADE,
-        related_name="members"
-    )
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="team_member")
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="members")
