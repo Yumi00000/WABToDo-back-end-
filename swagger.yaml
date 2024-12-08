@@ -421,9 +421,64 @@ paths:
                   acceptedAt: 2024-11-30
                   teamId: 1
 
-  /api/users/teams/create:
+  /api/users/team/:
+    get:
+      summary: Retrieve a list of teams
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [ available, unavailable ]
+          description: Filter teams by their status
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Team ID
+                    leader:
+                      type: integer
+                      description: User ID of the team leader
+                    members_count:
+                      type: integer
+                      description: Number of members in the team
+                    status:
+                      type: string
+                      description: Team status (available/unavailable)
+              example:
+                - id: 1
+                  leader: 1
+                  members_count: 4
+                  status: available
+                - id: 2
+                  leader: 2
+                  members_count: 3
+                  status: unavailable
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              example:
+                detail: "Authentication credentials were not provided."
+
+  /api/users/team/create:
     post:
-      summary: Creating an team
+      summary: Team creation by administrator
       parameters:
         - in: header
           name: Authorization
@@ -474,3 +529,69 @@ paths:
             application/json:
               example:
                 detail: "Invalid input data"
+
+  /api/users/team/edit/<id>:
+    patch:
+      summary: Update a team by administrator
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                members:
+                  type: array
+                  items:
+                    type: integer
+                  description: Updated list of user IDs in the team
+                leader:
+                  type: integer
+                  description: (Optional) Updated user ID of the team leader
+                status:
+                  type: string
+                  description: (Optional) Updated status of the team
+                  enum: [ available, unavailable ]
+              required:
+                - members
+            example:
+              members: [ 2, 3 ]
+              leader: 3
+              status: unavailable
+
+      responses:
+        '200':
+          description: Team successfully updated
+          content:
+            application/json:
+              example:
+                id: 1
+                leader: 3
+                members: [ 2, 3 ]
+                status: unavailable
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              example:
+                detail: "Invalid input data"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              example:
+                detail: "Authentication credentials were not provided."
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              example:
+                detail: "Team with the given ID does not exist."
+
