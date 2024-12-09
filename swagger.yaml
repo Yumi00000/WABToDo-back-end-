@@ -270,7 +270,7 @@ paths:
                   status: 403
                   message: Authentication credentials were not provided.
 
-  /api/orders/edit/<id>:
+  /api/orders/edit/{id}:
     patch:
       summary: Edit order details
       description: Request for user to change order details himself
@@ -382,7 +382,7 @@ paths:
                   status: active
                 }
 
-  /api/orders/management/id:
+  /api/orders/management/{id}:
     patch:
       summary: Management of incoming orders, change the status of an order
       requestBody:
@@ -549,7 +549,7 @@ paths:
               example:
                 detail: "Invalid input data"
 
-  /api/users/team/edit/<id>:
+  /api/users/team/edit/{id}:
     patch:
       summary: Update a team by administrator
       parameters:
@@ -613,4 +613,198 @@ paths:
             application/json:
               example:
                 detail: "Team with the given ID does not exist."
+
+  /api/tasks/create/:
+    post:
+      summary: Creating tasks
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication. The user should be a team leader or administrator.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: max length 255 chars
+                description:
+                  type: string
+                  description: minimum is 10 chars, maximum is 2500 chars
+                executor:
+                  type: integer
+                  description: Team member ID
+                deadline:
+                  type: string
+                  format: date
+              required:
+                - title
+                - description
+                - executor
+                - deadline
+              example:
+                title: First task
+                description: Task description
+                executor: 1
+                team: 1
+                order: 1
+                deadline: 2024-12-09
+
+      responses:
+        "201":
+          description: Task successfully created
+          content:
+            application/json:
+              example:
+                id: 1
+                title: First task
+                description: Task description
+                executor: 1
+                team: 1
+                order: 1
+                status: pending
+                deadline: 2024-12-09
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              example:
+                detail: "Invalid input data"
+        "403":
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Authentication credentials have not been provided or the user is not the team leader
+
+  /api/tasks/:
+    get:
+      summary: Retrieve all tasks
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication. Accessible by administrators, team members, and the owner of the order.
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: Filter tasks by status (e.g., "pending", "completed").
+        - in: query
+          name: executor
+          schema:
+            type: integer
+          description: Filter tasks by team member ID to view their tasks.
+      responses:
+        "200":
+          description: Successfully retrieved tasks
+          content:
+            application/json:
+              example:
+                tasks:
+                  - id: 1
+                    title: First task
+                    description: Task description
+                    executor: 1
+                    team: 1
+                    order: 1
+                    status: pending
+                    deadline: 2024-12-09
+                  - id: 2
+                    title: Second task
+                    description: Another task description
+                    executor: 2
+                    team: 1
+                    order: 1
+                    status: completed
+                    deadline: 2024-12-10
+        "403":
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Authentication credentials have not been provided or the user does not have permission to access tasks.
+
+  /api/tasks/edit/{id}/:
+    patch:
+      summary: Update task details
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer token for authentication. Only administrators and team leaders can modify tasks.
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Task ID.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: New title for the task (max length 255 chars).
+                description:
+                  type: string
+                  description: New description for the task (min 10 chars, max 2500 chars).
+                executor:
+                  type: integer
+                  description: New executor ID (team member ID).
+                deadline:
+                  type: string
+                  format: date
+                  description: New deadline for the task.
+              example:
+                title: Updated task title
+                description: Updated task description
+                executor: 2
+                deadline: 2024-12-15
+      responses:
+        "200":
+          description: Task successfully updated
+          content:
+            application/json:
+              example:
+                id: 1
+                title: Updated task title
+                description: Updated task description
+                executor: 2
+                team: 1
+                order: 1
+                status: pending
+                deadline: 2024-12-15
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              example:
+                detail: "Invalid input data"
+        "403":
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Authentication credentials have not been provided or the user does not have permission to modify tasks
+
 
