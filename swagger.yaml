@@ -137,20 +137,25 @@ paths:
                       format: date
                     accepted:
                       type: boolean
+                    status:
+                      type: string
+                      default: active
               example:
                 - {
                   id: 1,
                   name: project1,
                   owner: John,
                   createdAt: 2024-11-30,
-                  accepted: true
+                  accepted: true,
+                  status: active
                 }
                 - {
                   id: 2,
                   name: project2,
                   owner: John,
                   createdAt: 2024-11-30,
-                  accepted: true
+                  accepted: true,
+                  status: active
                 }
 
   /api/orders/create/:
@@ -239,6 +244,8 @@ paths:
                         deadline:
                           type: string
                           format: date
+                  status:
+                    type: string
                 example:
                   id: 42
                   owner: 1
@@ -251,6 +258,7 @@ paths:
                   accepted: false
                   team: null
                   tasks: null
+                  status: active
 
         '403':
           description: User not authorized
@@ -355,19 +363,23 @@ paths:
                     createdAt:
                       type: string
                       format: date
+                    status:
+                      type: string
 
               example:
                 - {
                   id: 1,
                   name: project1,
                   owner: John,
-                  createdAt: 2024-11-30
+                  createdAt: 2024-11-30,
+                  status: active
                 }
                 - {
                   id: 2,
                   name: project2,
                   owner: John,
-                  createdAt: 2024-11-30
+                  createdAt: 2024-11-30,
+                  status: active
                 }
 
   /api/orders/management/id:
@@ -384,12 +396,16 @@ paths:
                   type: boolean
                 teamId:
                   type: integer
+                status:
+                  type: string
+                  default: active
               required:
                 - accepted
                 - teamId
               example:
                 accepted: true
                 teamId: 1
+                status: active
 
       responses:
         '200':
@@ -414,12 +430,15 @@ paths:
                   accepted:
                     type: boolean
                     default: false
+                  status:
+                    type: string
                 example:
                   id: 1
                   name: New Project
                   accepted: true
                   acceptedAt: 2024-11-30
                   teamId: 1
+                  status: active
 
   /api/users/team/:
     get:

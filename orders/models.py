@@ -15,6 +15,7 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
     accepted_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, default="active")
 
     def __str__(self):
         return f"Order name: {self.name}"

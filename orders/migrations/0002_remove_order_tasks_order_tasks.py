@@ -18,8 +18,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="order",
             name="tasks",
-            field=models.ManyToManyField(
-                blank=True, null=True, related_name="orders", to="tasks.task"
-            ),
+            field=models.ManyToManyField(blank=True, null=True, related_name="orders", to="tasks.task"),
         ),
     ]
