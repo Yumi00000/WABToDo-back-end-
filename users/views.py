@@ -6,7 +6,8 @@ from rest_framework.viewsets import GenericViewSet
 
 from orders.models import Order
 from users import serializers
-from users.models import CustomUser, CustomAuthToken
+from users.models import CustomUser, CustomAuthToken, Team
+from core import permissions as c_prm
 
 
 class RegistrationView(generics.CreateAPIView, GenericViewSet):
@@ -48,3 +49,9 @@ class DashboardView(generics.ListAPIView, GenericViewSet):
         queryset = Order.objects.filter(owner_orders | team_orders).distinct()
 
         return queryset
+
+
+class TeamsView(generics.ListAPIView, GenericViewSet):
+    queryset = Team.objects.all()
+    permission_classes = [c_prm.IsTeamMemberOrLeader]
+    serializer_class = serializers.TeamSerializer
