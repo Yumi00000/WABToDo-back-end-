@@ -6,6 +6,7 @@ from rest_framework.validators import UniqueValidator
 
 from orders.models import Order
 from orders.serializers import OrderSerializer
+from orders.utils import change_date_format
 from users.models import CustomUser
 
 
@@ -97,7 +98,15 @@ class LoginSerializer(serializers.Serializer):
 
 
 class DashboardSerializer(OrderSerializer):
-    name = serializers.CharField(read_only=True)
-    owner = serializers.CharField(source="owner.first_name", read_only=True)
-    createdAt = serializers.DateTimeField(source="created_at", read_only=True)
-    accepted = serializers.BooleanField(read_only=True)
+
+    def to_representation(self, instance: Order) -> dict:
+        created_at = change_date_format(instance.created_at)
+
+        return {
+            "id": instance.id,
+            "name": instance.name,
+            "owner": instance.owner.first_name,
+            "createdAt": created_at,
+            "accepted": instance.accepted,
+            "status": instance.status,
+        }
