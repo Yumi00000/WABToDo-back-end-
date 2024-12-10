@@ -33,8 +33,13 @@ class IsTeamMemberOrLeader(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
+        if request.user and request.user.is_staff:
+            return True
+
         if not isinstance(obj, Team):
             return False
 
-        user = request.user
-        return user == obj.leader or obj.list_of_members.filter(id=user.id).exists()
+        if hasattr(obj, "leader") and obj.leader == request.user:
+            return True
+
+        return obj.list_of_members.filter(id=request.user.id).exists()

@@ -123,3 +123,28 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def get_list_of_members(self, obj: Team):
         return [member.username for member in obj.list_of_members.all()]
+
+
+class CreateTeamSerializer(serializers.ModelSerializer):
+    list_of_members = serializers.ListField(
+        child=serializers.IntegerField(), write_only=True
+    )
+
+    class Meta:
+        model = Team
+        fields = ['status', 'list_of_members']
+
+    def create(self, validated_data):
+        leader = self.context['request'].user
+        list_of_members = validated_data.pop('list_of_members', [])
+
+        team = Team.objects.create(leader=leader, status=validated_data.get('status', 'available'))
+
+        members = CustomUser.objects.filter(id__in=list_of_members)
+
+
+
+        team.list_of_members.set(members)
+        team.save()
+
+        return team

@@ -4,10 +4,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
+from core import permissions as c_prm
 from orders.models import Order
 from users import serializers
 from users.models import CustomUser, CustomAuthToken, Team
-from core import permissions as c_prm
 
 
 class RegistrationView(generics.CreateAPIView, GenericViewSet):
@@ -55,3 +55,12 @@ class TeamsView(generics.ListAPIView, GenericViewSet):
     queryset = Team.objects.all()
     permission_classes = [c_prm.IsTeamMemberOrLeader]
     serializer_class = serializers.TeamSerializer
+
+
+class TeamsCreateView(generics.CreateAPIView, GenericViewSet):
+    queryset = Team.objects.all()
+    permission_classes = [permissions.IsAuthenticated, c_prm.IsAdminOrStaff]
+    serializer_class = serializers.CreateTeamSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(leader=self.request.user)
