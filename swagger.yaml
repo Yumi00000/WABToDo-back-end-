@@ -267,8 +267,7 @@ paths:
               schema:
                 type: object
                 example:
-                  status: 403
-                  message: Authentication credentials were not provided.
+                  detail: You do not have permission to perform this action.
 
   /api/orders/edit/{id}:
     patch:
@@ -329,8 +328,7 @@ paths:
               schema:
                 type: object
                 example:
-                  status: 403
-                  message: Login to continue
+                  detail: You do not have permission to perform this action.
 
   /api/orders/management/:
     get:
@@ -360,6 +358,8 @@ paths:
                       type: string
                     owner:
                       type: string
+                    description:
+                      type: string
                     createdAt:
                       type: string
                       format: date
@@ -371,6 +371,7 @@ paths:
                   id: 1,
                   name: project1,
                   owner: John,
+                  description: Some description about this order with ID 1,
                   createdAt: 2024-11-30,
                   status: active
                 }
@@ -378,9 +379,18 @@ paths:
                   id: 2,
                   name: project2,
                   owner: John,
+                  description: Some description about this order with ID 2,
                   createdAt: 2024-11-30,
                   status: active
                 }
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  detail: You do not have permission to perform this action.
 
   /api/orders/management/{id}:
     patch:
@@ -394,17 +404,18 @@ paths:
               properties:
                 accepted:
                   type: boolean
-                teamId:
+                team:
                   type: integer
                 status:
                   type: string
                   default: active
+                  enum: [ active, closed ]
               required:
                 - accepted
                 - teamId
               example:
                 accepted: true
-                teamId: 1
+                team: 1
                 status: active
 
       responses:
@@ -437,8 +448,14 @@ paths:
                   name: New Project
                   accepted: true
                   acceptedAt: 2024-11-30
-                  teamId: 1
+                  team: 1
                   status: active
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              example:
+                detail: "No Order matches the given query."
 
   /api/users/team/:
     get:
@@ -676,14 +693,14 @@ paths:
             application/json:
               example:
                 detail: "Invalid input data"
-        "403":
+        '403':
           description: User not authorized
           content:
             application/json:
               schema:
                 type: object
                 example:
-                  message: Authentication credentials have not been provided or the user is not the team leader
+                  detail: You do not have permission to perform this action.
 
   /api/tasks/:
     get:
@@ -728,14 +745,14 @@ paths:
                     order: 1
                     status: completed
                     deadline: 2024-12-10
-        "403":
+        '403':
           description: User not authorized
           content:
             application/json:
               schema:
                 type: object
                 example:
-                  message: Authentication credentials have not been provided or the user does not have permission to access tasks.
+                  detail: You do not have permission to perform this action.
 
   /api/tasks/edit/{id}/:
     patch:
@@ -773,6 +790,8 @@ paths:
                   type: string
                   format: date
                   description: New deadline for the task.
+                status:
+                  enum: [ pending, in_process, closed ]
               example:
                 title: Updated task title
                 description: Updated task description
@@ -798,13 +817,12 @@ paths:
             application/json:
               example:
                 detail: "Invalid input data"
-        "403":
+        '403':
           description: User not authorized
           content:
             application/json:
               schema:
                 type: object
                 example:
-                  message: Authentication credentials have not been provided or the user does not have permission to modify tasks
-
+                  detail: You do not have permission to perform this action.
 
