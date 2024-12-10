@@ -7,7 +7,7 @@ from rest_framework.validators import UniqueValidator
 from orders.models import Order
 from orders.serializers import OrderSerializer
 from orders.utils import change_date_format
-from users.models import CustomUser
+from users.models import CustomUser, Team
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -110,3 +110,16 @@ class DashboardSerializer(OrderSerializer):
             "accepted": instance.accepted,
             "status": instance.status,
         }
+
+
+class TeamSerializer(serializers.ModelSerializer):
+    leader = serializers.CharField(source="leader.username", read_only=True)
+    status = serializers.CharField(source="status.name", read_only=True)
+    list_of_members = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Team
+        fields = ['leader', 'status', 'list_of_members']
+
+    def get_list_of_members(self, obj: Team):
+        return [member.username for member in obj.list_of_members.all()]

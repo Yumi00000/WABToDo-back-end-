@@ -1,5 +1,7 @@
 from rest_framework import permissions
 
+from users.models import Team
+
 
 class IsOrderOwnerOrAdmin(permissions.BasePermission):
     """
@@ -16,6 +18,7 @@ class IsOrderOwnerOrAdmin(permissions.BasePermission):
         return False
 
 
+
 class IsAdminOrStaff(permissions.BasePermission):
     """
     Allow access only to admin and staff users like managers
@@ -23,3 +26,17 @@ class IsAdminOrStaff(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return bool(request.user and (request.user.is_staff or request.user.is_admin))
+
+
+class IsTeamMemberOrLeader(permissions.BasePermission):
+    """
+    Custom permission to allow only team members or the team leader to view team information.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if not isinstance(obj, Team):
+            return False
+
+        user = request.user
+        return user == obj.leader or obj.list_of_members.filter(id=user.id).exists()
+

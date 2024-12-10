@@ -59,11 +59,7 @@ class CustomAuthToken(models.Model):
 class Team(models.Model):
     leader = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="team_leader")
     status = models.CharField(max_length=11, default="available")
+    list_of_members = models.ManyToManyField(CustomUser, related_name="team_members")
 
     def __str__(self):
         return f"team_id: {self.id} | status: {self.status}"
-
-
-class TeamMember(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="team_member")
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="members")

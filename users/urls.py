@@ -6,6 +6,7 @@ from users import views
 router = routers.DefaultRouter()
 router.register(r"registration", views.RegistrationView, basename="register"),
 router.register("dashboard", views.DashboardView, basename="dashboard")
+router.register("teams", views.TeamsView, basename="teams")
 
 urlpatterns = router.urls
 urlpatterns += [
