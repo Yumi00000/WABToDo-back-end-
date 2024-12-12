@@ -45,7 +45,7 @@ class DashboardView(generics.ListAPIView, GenericViewSet):
     def get_queryset(self):
         user = self.request.user
         owner_orders = Q(owner=user)
-        team_orders = Q(team__members__user=user)
+        team_orders = Q(team__list_of_members=user)
         queryset = Order.objects.filter(owner_orders | team_orders).distinct()
 
         return queryset
