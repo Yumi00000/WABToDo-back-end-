@@ -113,8 +113,8 @@ class DashboardSerializer(OrderSerializer):
 
 
 class TeamSerializer(serializers.ModelSerializer):
-    leader = serializers.CharField(source="leader.username", read_only=True)
-    status = serializers.CharField(source="status.name", read_only=True)
+    leader = serializers.CharField(source="leader.username", read_only=False)
+    status = serializers.CharField(source="status.name", read_only=False)
     list_of_members = serializers.SerializerMethodField()
 
     class Meta:
@@ -122,7 +122,7 @@ class TeamSerializer(serializers.ModelSerializer):
         fields = ["leader", "status", "list_of_members"]
 
     def get_list_of_members(self, obj: Team):
-        return [member.username for member in obj.list_of_members.all()]
+        return [member for member in obj.list_of_members.all()]
 
 
 class CreateTeamSerializer(serializers.ModelSerializer):
@@ -141,6 +141,34 @@ class CreateTeamSerializer(serializers.ModelSerializer):
         members = CustomUser.objects.filter(id__in=list_of_members)
 
         team.list_of_members.set(members)
+        team.list_of_members.add(self.context["request"].user)
         team.save()
 
         return team
+
+
+class UpdateTeamSerializer(TeamSerializer):
+    leader_id = serializers.IntegerField()
+    list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+    status = serializers.CharField()
+
+    class Meta:
+        model = Team
+        fields = ["leader_id", "status", "list_of_members"]
+
+    def update(self, instance, validated_data):
+        current_members_ids = set(member.id for member in instance.list_of_members.all())
+
+        new_members_ids = set(validated_data.pop("list_of_members", []))
+
+        members_to_add = new_members_ids - current_members_ids
+        members_to_remove = current_members_ids - new_members_ids
+
+        if members_to_add or members_to_remove:
+            updated_members = CustomUser.objects.filter(id__in=new_members_ids)
+            instance.list_of_members.set(updated_members)
+        instance.leader = CustomUser.objects.get(id=validated_data.get("leader_id", instance.leader.id))
+        instance.status = validated_data.get("status", instance.status)
+        instance.save()
+
+        return instance

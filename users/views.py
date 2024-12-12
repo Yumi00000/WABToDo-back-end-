@@ -64,3 +64,9 @@ class TeamsCreateView(generics.CreateAPIView, GenericViewSet):
 
     def perform_create(self, serializer):
         serializer.save(leader=self.request.user)
+
+
+class UpdateTeamView(generics.UpdateAPIView, GenericViewSet):
+    queryset = Team.objects.all()
+    permission_classes = [c_prm.IsAdminOrStaff, c_prm.IsTeamMemberOrLeader]
+    serializer_class = serializers.UpdateTeamSerializer
