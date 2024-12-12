@@ -125,7 +125,7 @@ class TeamSerializer(serializers.ModelSerializer):
         return [member for member in obj.list_of_members.all()]
 
 
-class CreateTeamSerializer(serializers.ModelSerializer):
+class CreateTeamSerializer(TeamSerializer):
     list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True)
 
     class Meta:
@@ -138,8 +138,7 @@ class CreateTeamSerializer(serializers.ModelSerializer):
 
         team = Team.objects.create(leader=leader, status=validated_data.get("status", "available"))
 
-        members = CustomUser.objects.filter(id__in=list_of_members)
-
+        members = CustomUser.objects.filter(id__in=list_of_members).update(is_team_member=True)
         team.list_of_members.set(members)
         team.list_of_members.add(self.context["request"].user)
         team.save()
@@ -149,7 +148,7 @@ class CreateTeamSerializer(serializers.ModelSerializer):
 
 class UpdateTeamSerializer(TeamSerializer):
     leader_id = serializers.IntegerField()
-    list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+    list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=True)
     status = serializers.CharField()
 
     class Meta:
@@ -157,18 +156,32 @@ class UpdateTeamSerializer(TeamSerializer):
         fields = ["leader_id", "status", "list_of_members"]
 
     def update(self, instance, validated_data):
-        current_members_ids = set(member.id for member in instance.list_of_members.all())
+        current_members_ids = (
+            set(member.id for member in instance.list_of_members.all())
+            if instance.list_of_members.filter(id=self.context["request"].user.id).exists()
+            else set()
+        )
 
+        instance.leader = CustomUser.objects.get(id=validated_data.get("leader_id", instance.leader.id))
+        instance.status = validated_data.get("status", instance.status)
         new_members_ids = set(validated_data.pop("list_of_members", []))
 
         members_to_add = new_members_ids - current_members_ids
         members_to_remove = current_members_ids - new_members_ids
 
+
+        (
+            CustomUser.objects.update(is_team_member=False) and instance.list_of_members.clear()
+            if not new_members_ids
+            else None
+        )
+
         if members_to_add or members_to_remove:
             updated_members = CustomUser.objects.filter(id__in=new_members_ids)
+            CustomUser.objects.filter(id__in=members_to_add).update(is_team_member=True)
+            CustomUser.objects.filter(id__in=members_to_remove).update(is_team_member=False)
             instance.list_of_members.set(updated_members)
-        instance.leader = CustomUser.objects.get(id=validated_data.get("leader_id", instance.leader.id))
-        instance.status = validated_data.get("status", instance.status)
+
         instance.save()
 
         return instance
