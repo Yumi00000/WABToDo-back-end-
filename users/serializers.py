@@ -114,7 +114,7 @@ class DashboardSerializer(OrderSerializer):
 
 class TeamSerializer(serializers.ModelSerializer):
     leader = serializers.CharField(source="leader.username", read_only=False)
-    status = serializers.CharField(source="status.name", read_only=False)
+    status = serializers.CharField(read_only=False)
     list_of_members = serializers.SerializerMethodField()
 
     class Meta:
@@ -122,7 +122,7 @@ class TeamSerializer(serializers.ModelSerializer):
         fields = ["leader", "status", "list_of_members"]
 
     def get_list_of_members(self, obj: Team):
-        return [member for member in obj.list_of_members.all()]
+        return [member.first_name for member in obj.list_of_members.all()]
 
 
 class CreateTeamSerializer(TeamSerializer):
