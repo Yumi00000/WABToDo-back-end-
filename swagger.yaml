@@ -531,7 +531,7 @@ paths:
               properties:
                 leader:
                   type: integer
-                  description: User id
+                  description: User ID of the team leader
                 members:
                   type: array
                   items:
@@ -554,11 +554,53 @@ paths:
           description: Team successfully created
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  team_id:
+                    type: integer
+                    description: ID of the created team
+                  leader:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      firstName:
+                        type: string
+                      lastName:
+                        type: string
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        firstName:
+                          type: string
+                        lastName:
+                          type: string
+                  status:
+                    type: string
+                    description: Status of the team
               example:
                 team_id: 12
-                leader: 1
-                members: [ 2, 3, 4 ]
+                leader:
+                  id: 1
+                  firstName: "John"
+                  lastName: "Doe"
+                members:
+                  - id: 2
+                    firstName: "Alice"
+                    lastName: "Smith"
+                  - id: 3
+                    firstName: "Bob"
+                    lastName: "Johnson"
+                  - id: 4
+                    firstName: "Eve"
+                    lastName: "Davis"
                 status: available
+
         '400':
           description: Bad request
           content:
@@ -570,6 +612,12 @@ paths:
     patch:
       summary: Update a team by administrator
       parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the team to update
         - in: header
           name: Authorization
           required: true
@@ -583,14 +631,14 @@ paths:
             schema:
               type: object
               properties:
+                leader:
+                  type: integer
+                  description: (Optional) Updated user ID of the team leader
                 members:
                   type: array
                   items:
                     type: integer
                   description: Updated list of user IDs in the team
-                leader:
-                  type: integer
-                  description: (Optional) Updated user ID of the team leader
                 status:
                   type: string
                   description: (Optional) Updated status of the team
@@ -598,20 +646,59 @@ paths:
               required:
                 - members
             example:
+              leader: 1
               members: [ 2, 3 ]
-              leader: 3
-              status: unavailable
+              status: available
 
       responses:
-        '200':
+        '201':
           description: Team successfully updated
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  team_id:
+                    type: integer
+                    description: ID of the created team
+                  leader:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      firstName:
+                        type: string
+                      lastName:
+                        type: string
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        firstName:
+                          type: string
+                        lastName:
+                          type: string
+                  status:
+                    type: string
+                    description: Status of the team
               example:
-                id: 1
-                leader: 3
-                members: [ 2, 3 ]
+                team_id: 12
+                leader:
+                  id: 1
+                  firstName: "John"
+                  lastName: "Doe"
+                members:
+                  - id: 2
+                    firstName: "Alice"
+                    lastName: "Smith"
+                  - id: 3
+                    firstName: "Bob"
+                    lastName: "Johnson"
                 status: unavailable
+
         '400':
           description: Bad request
           content:
