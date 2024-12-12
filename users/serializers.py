@@ -137,10 +137,10 @@ class CreateTeamSerializer(TeamSerializer):
         list_of_members = validated_data.pop("list_of_members", [])
 
         team = Team.objects.create(leader=leader, status=validated_data.get("status", "available"))
-        CustomUser.objects.filter(id__in=list_of_members).update(is_team_member=True)
         members = CustomUser.objects.filter(id__in=list_of_members)
         team.list_of_members.set(members)
         team.list_of_members.add(self.context["request"].user)
+        CustomUser.objects.filter(id__in=list_of_members).update(is_team_member=True)
         team.save()
 
         return team
