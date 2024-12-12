@@ -5,8 +5,7 @@ from tasks import serializers
 from tasks.models import Task
 
 
-class GetTeamTasksView(generics.ListAPIView, GenericViewSet):
-    ...
+class GetTeamTasksView(generics.ListAPIView, GenericViewSet): ...
 
 
 class CreateTaskView(generics.CreateAPIView, GenericViewSet):
