@@ -169,18 +169,11 @@ class UpdateTeamSerializer(TeamSerializer):
         members_to_add = new_members_ids - current_members_ids
         members_to_remove = current_members_ids - new_members_ids
 
-
-        (
-            CustomUser.objects.update(is_team_member=False) and instance.list_of_members.clear()
-            if not new_members_ids
-            else None
-        )
-
         if members_to_add or members_to_remove:
             updated_members = CustomUser.objects.filter(id__in=new_members_ids)
+            instance.list_of_members.set(updated_members)
             CustomUser.objects.filter(id__in=members_to_add).update(is_team_member=True)
             CustomUser.objects.filter(id__in=members_to_remove).update(is_team_member=False)
-            instance.list_of_members.set(updated_members)
 
         instance.save()
 
