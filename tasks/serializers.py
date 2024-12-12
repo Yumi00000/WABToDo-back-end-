@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from orders.models import Order
 from tasks.models import Task
-from users.models import Team
+from users.models import Team, CustomUser
 
 
 class BaseTaskSerializer(serializers.ModelSerializer):
@@ -19,17 +19,20 @@ class BaseTaskSerializer(serializers.ModelSerializer):
         fields = ["id", "title", "description", "executor", "team", "order", "status", "deadline"]
 
     def validate(self, attrs: dict) -> dict:
-        self._validate_len_title_and_description(attrs)
+        self._validate_len_title(attrs)
+        self._validate_len_description(attrs)
         attrs["team"], attrs["order"] = self._get_team_and_order(attrs)
         self._validate_deadline(attrs)
 
         return attrs
 
-    def _validate_len_title_and_description(self, attrs: dict) -> None:
+    def _validate_len_title(self, attrs: dict) -> None:
         if len(attrs["title"]) < 5:
             raise serializers.ValidationError({"title": "Title must be at least 5 characters"})
         if len(attrs["title"]) > 255:
             raise serializers.ValidationError({"title": "Title cannot be more than 255 characters"})
+
+    def _validate_len_description(self, attrs: dict) -> None:
         if len(attrs["description"]) < 10:
             raise serializers.ValidationError({"description": "Description must be at least 10 characters"})
         if len(attrs["description"]) > 5000:
@@ -63,6 +66,18 @@ class BaseTaskSerializer(serializers.ModelSerializer):
 
         return order
 
+    def to_representation(self, instance: Task) -> dict:
+        return {
+            "id": instance.id,
+            "title": instance.title,
+            "description": instance.description,
+            "executor": instance.executor.id,
+            "team": instance.team.id,
+            "order": instance.order.id,
+            "status": instance.status,
+            "deadline": instance.deadline,
+        }
+
 
 class CreateTaskSerializer(BaseTaskSerializer):
 
@@ -78,14 +93,37 @@ class CreateTaskSerializer(BaseTaskSerializer):
 
         return task
 
-    def to_representation(self, instance: Task) -> dict:
-        return {
-            "id": instance.id,
-            "title": instance.title,
-            "description": instance.description,
-            "executor": instance.executor.id,
-            "team": instance.team.id,
-            "order": instance.order.id,
-            "status": instance.status,
-            "deadline": instance.deadline,
-        }
+
+class EditTaskSerializer(BaseTaskSerializer):
+    title = serializers.CharField(required=False)
+    description = serializers.CharField(required=False)
+    executor = serializers.CharField(required=False)
+    deadline = serializers.DateField(required=False)
+    status = serializers.CharField(required=False)
+
+    def validate(self, attrs: dict) -> dict:
+        print(attrs)
+        if "title" in attrs:
+            self._validate_len_title(attrs)
+        if "description" in attrs:
+            self._validate_len_description(attrs)
+        if "executor" in attrs:
+            attrs["team"], attrs["order"] = self._get_team_and_order(attrs)
+        if "deadline" in attrs:
+            self._validate_deadline(attrs)
+
+        return attrs
+
+    def update(self, instance: Task, validated_data: dict) -> Task:
+        if validated_data.get("title", False):
+            instance.title = validated_data["title"]
+        if validated_data.get("description", False):
+            instance.description = validated_data["description"]
+        if validated_data.get("executor", False):
+            user = CustomUser.objects.get(id=validated_data["executor"])
+            instance.executor = user
+        if validated_data.get("deadline", False):
+            instance.deadline = validated_data["deadline"]
+
+        instance.save()
+        return instance
