@@ -122,7 +122,7 @@ class TeamSerializer(serializers.ModelSerializer):
         fields = ["leader", "status", "list_of_members"]
 
     def get_list_of_members(self, obj: Team):
-        return [member.first_name for member in obj.list_of_members.all()]
+        return [member.username for member in obj.list_of_members.all()]
 
 
 class CreateTeamSerializer(TeamSerializer):
