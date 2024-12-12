@@ -155,6 +155,11 @@ class UpdateTeamSerializer(TeamSerializer):
         model = Team
         fields = ["leader_id", "status", "list_of_members"]
 
+    def validate(self, attrs: dict) -> dict:
+        if attrs["leader_id"] not in attrs["list_of_members"]:
+            raise serializers.ValidationError({"leader_id": f"You cannot remove this member: {attrs['leader_id']}"})
+        return attrs
+
     def update(self, instance, validated_data):
         current_members_ids = (
             set(member.id for member in instance.list_of_members.all())
