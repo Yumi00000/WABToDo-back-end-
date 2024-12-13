@@ -102,7 +102,6 @@ class EditTaskSerializer(BaseTaskSerializer):
     status = serializers.CharField(required=False)
 
     def validate(self, attrs: dict) -> dict:
-        print(attrs)
         if "title" in attrs:
             self._validate_len_title(attrs)
         if "description" in attrs:
@@ -115,15 +114,11 @@ class EditTaskSerializer(BaseTaskSerializer):
         return attrs
 
     def update(self, instance: Task, validated_data: dict) -> Task:
-        if validated_data.get("title", False):
-            instance.title = validated_data["title"]
-        if validated_data.get("description", False):
-            instance.description = validated_data["description"]
-        if validated_data.get("executor", False):
-            user = CustomUser.objects.get(id=validated_data["executor"])
-            instance.executor = user
-        if validated_data.get("deadline", False):
-            instance.deadline = validated_data["deadline"]
+        instance.title = validated_data.get("title", instance.title)
+        instance.description = validated_data.get("description", instance.description)
+        user = CustomUser.objects.get(id=validated_data["executor"])
+        instance.executor = user if user else instance.executor
+        instance.deadline = validated_data.get("deadline", instance.deadline)
 
         instance.save()
         return instance
