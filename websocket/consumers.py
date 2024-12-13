@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 class CommentConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        logger.info("WebSocket connected")
         self.group_name = "comments_room"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        logger.info("WebSocket connected")
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
