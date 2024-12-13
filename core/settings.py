@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     # CUSTOM APPS
     "users.apps.UsersConfig",
     "tasks.apps.TasksConfig",
-    "comments.apps.CommentsConfig",
+    "websocket.apps.WebsocketConfig",
     "orders.apps.OrdersConfig",
     # BASE
     "django.contrib.admin",
@@ -48,7 +48,19 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "django_extensions",
     "django_celery_beat",
+    "channels",
 ]
+
+AASGI_APPLICATION = "django_ws.routing.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("0.0.0.0", 6379)],
+        },
+    },
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
