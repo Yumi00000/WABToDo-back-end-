@@ -6,7 +6,7 @@ class Comment(models.Model):
     task = models.ForeignKey("tasks.Task", on_delete=models.CASCADE, related_name="task_comments")
     content = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField()
+    updated_at = models.DateTimeField(null=True)
 
     def __str__(self):
         return self.content
@@ -17,7 +17,7 @@ class Message(models.Model):
     sender = models.ForeignKey("users.CustomUser", on_delete=models.CASCADE, related_name="sender")
     content = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField()
+    updated_at = models.DateTimeField(null=True)
 
     def __str__(self):
         return self.content

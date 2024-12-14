@@ -41,7 +41,7 @@ class CommentConsumer(AsyncWebsocketConsumer):
 
         # Create the comment
         comment = await sync_to_async(Comment.objects.create)(
-            context=content,
+            content=content,
             member_id=member_id,
             task_id=task_id,
         )
