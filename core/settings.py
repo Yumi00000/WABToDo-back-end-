@@ -161,7 +161,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': 'websocket.log',
+            'filename': 'logg.log',
         },
     },
     'loggers': {
