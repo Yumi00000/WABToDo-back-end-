@@ -51,7 +51,7 @@ class DashboardView(generics.ListAPIView, GenericViewSet):
         return queryset
 
 
-class TeamsView(generics.ListAPIView, GenericViewSet):
+class TeamsListView(generics.ListAPIView, GenericViewSet):
     queryset = Team.objects.all()
     permission_classes = [c_prm.IsTeamMemberOrLeader]
     serializer_class = serializers.TeamSerializer
@@ -70,3 +70,13 @@ class UpdateTeamView(generics.UpdateAPIView, GenericViewSet):
     queryset = Team.objects.all()
     permission_classes = [c_prm.IsAdminOrStaff, c_prm.IsTeamMemberOrLeader]
     serializer_class = serializers.UpdateTeamSerializer
+
+
+class TeamView(generics.RetrieveAPIView, GenericViewSet):
+    queryset = Team.objects.all()
+    permission_classes = [permissions.IsAuthenticated, c_prm.IsTeamMemberOrLeader]
+    serializer_class = serializers.TeamSerializer
+
+    def get_queryset(self):
+        team_id = self.kwargs["pk"]
+        return Team.objects.filter(pk=team_id).all()
