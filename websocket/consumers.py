@@ -35,14 +35,14 @@ class CommentConsumer(AsyncWebsocketConsumer):
 
         validated_data = serializer.validated_data
         username = validated_data["username"]
-        user_id = validated_data["member_id"]
+        member_id = validated_data["member_id"]
         content = validated_data["content"]
         task_id = validated_data["task_id"]
 
         # Create the comment
         comment = await sync_to_async(Comment.objects.create)(
             context=content,
-            member_id=user_id,
+            member_id=member_id,
             task_id=task_id,
         )
         logger.info(f"Comment created: {comment.id}")

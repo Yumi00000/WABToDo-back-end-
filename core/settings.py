@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-9#a!laew-7ewbhrw+$0b2)@1%#xbn-@z!h!7_nj+*v-s4_2a2x
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["0.0.0.0", "localhost", "127.0.0.1"]
 
 # Application definition
 
@@ -48,10 +48,12 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "django_extensions",
     "django_celery_beat",
+    "channels_redis",
     "channels",
+
 ]
 
-AASGI_APPLICATION = "django_ws.routing.application"
+ASGI_APPLICATION = "websocket.asgi.application"
 
 CHANNEL_LAYERS = {
     "default": {
@@ -70,6 +72,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -151,7 +154,6 @@ REST_FRAMEWORK = {
         "core.authentication.CustomJWTAuthentication",
     ]
 }
-
 
 LOGGING = {
     "version": 1,
