@@ -63,3 +63,21 @@ class Team(models.Model):
 
     def __str__(self):
         return f"team_id: {self.id} | status: {self.status}"
+
+
+class Participant(models.Model):
+    chat = models.ForeignKey("Chat", on_delete=models.CASCADE, related_name="participants")
+    user = models.ForeignKey("users.CustomUser", on_delete=models.CASCADE, related_name="participants")
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.user.username
+
+
+class Chat(models.Model):
+    name = models.CharField(max_length=255)
+    is_group = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name

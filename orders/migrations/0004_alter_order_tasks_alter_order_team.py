@@ -16,9 +16,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="order",
             name="tasks",
-            field=models.ManyToManyField(
-                blank=True, related_name="orders", to="tasks.task"
-            ),
+            field=models.ManyToManyField(blank=True, related_name="orders", to="tasks.task"),
         ),
         migrations.AlterField(
             model_name="order",

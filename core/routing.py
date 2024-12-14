@@ -11,8 +11,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django_ws.settings")
 application = ProtocolTypeRouter(
     {
         "http": get_asgi_application(),
-        "websocket": WebSocketJWTAuthMiddleware(
-            URLRouter(websocket_urlpatterns)
-        ),
+        "websocket": WebSocketJWTAuthMiddleware(URLRouter(websocket_urlpatterns)),
     }
 )

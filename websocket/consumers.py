@@ -54,7 +54,6 @@ class CommentConsumer(AsyncWebsocketConsumer):
             "username": username,
             "type": "send_comment",
             "comment": response_serializer.data,
-
         }
 
         # Send the response to the group
