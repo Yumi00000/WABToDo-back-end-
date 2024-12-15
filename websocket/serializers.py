@@ -7,6 +7,7 @@ class CommentSerializer(serializers.ModelSerializer):
     content = serializers.JSONField()
     member_id = serializers.IntegerField(write_only=True)
     task_id = serializers.IntegerField(write_only=True)
+
     class Meta:
         model = Comment
         fields = ["username", "content", "member_id", "task_id", "created_at"]

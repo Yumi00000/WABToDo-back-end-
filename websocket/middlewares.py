@@ -5,12 +5,14 @@ from django.contrib.auth.models import AnonymousUser
 
 from users.models import CustomUser
 
+
 @sync_to_async
 def get_user_from_id(user_id):
     try:
         return CustomUser.objects.get(id=user_id)
     except CustomUser.DoesNotExist:
         return AnonymousUser()
+
 
 class WebSocketJWTAuthMiddleware:
     """

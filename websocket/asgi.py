@@ -13,18 +13,17 @@ from websocket.middlewares import WebSocketJWTAuthMiddleware
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django_asgi_app = get_asgi_application()
 
-application = (ProtocolTypeRouter(
+application = ProtocolTypeRouter(
     {
         "http": django_asgi_app,
-        "websocket":WebSocketJWTAuthMiddleware(
+        "websocket": WebSocketJWTAuthMiddleware(
             URLRouter(
                 [
                     re_path(r"^ws/comnt/$", consumers.CommentConsumer.as_asgi()),
                 ]
-
-        )),
+            )
+        ),
     }
-))
+)
 
 channel_layer = get_channel_layer()
-

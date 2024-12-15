@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "channels_redis",
     "channels",
-
 ]
 
 ASGI_APPLICATION = "websocket.asgi.application"
@@ -72,7 +71,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-
 ]
 
 ROOT_URLCONF = "core.urls"
