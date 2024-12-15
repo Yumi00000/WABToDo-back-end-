@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from decouple import config
@@ -48,7 +49,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "django_extensions",
     "django_celery_beat",
-    "channels_redis",
+    # "channels_redis",
     "channels",
 ]
 
@@ -107,6 +108,18 @@ DATABASES = {
     }
 }
 
+if os.getenv("DOCKERIZED", False):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql_psycopg2",
+            "NAME": os.getenv("POSTGRES_DB", "mock-db"),
+            "USER": "postgres",
+            "PASSWORD": config("POSTGRES_PASSWORD"),
+            "HOST": "db",
+            "PORT": "5432",
+        }
+    }
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 AUTH_USER_MODEL = "users.CustomUser"
@@ -153,21 +166,41 @@ REST_FRAMEWORK = {
     ]
 }
 
+# Logging
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {
-        "file": {
-            "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": "logg.log",
+    "formatters": {
+        "colored": {
+            "()": "colorlog.ColoredFormatter",
+            "format": "%(log_color)s%(levelname)s: %(message)s",
+            "log_colors": {
+                "DEBUG": "blue",
+                "INFO": "green",
+                "WARNING": "red",
+                "ERROR": "red",
+                "CRITICAL": "bold_red",
+            },
         },
     },
-    "loggers": {
-        "django": {
-            "handlers": ["file"],
-            "level": "INFO",
-            "propagate": True,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "colored",
         },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
     },
 }
+
+# Celery Configuration
+CELERY_BROKER_URL = "amqp://guest@localhost:5672//"
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = True
+CELERY_TASK_BACKEND = "rpc://"
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
