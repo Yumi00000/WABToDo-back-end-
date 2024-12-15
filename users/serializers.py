@@ -113,13 +113,73 @@ class DashboardSerializer(OrderSerializer):
 
 
 class TeamSerializer(serializers.ModelSerializer):
-    leader = serializers.CharField(source="leader.username", read_only=True)
-    status = serializers.CharField(source="status.name", read_only=True)
+    leader = serializers.CharField(source="leader.username", read_only=False)
+    status = serializers.CharField(read_only=False)
     list_of_members = serializers.SerializerMethodField()
 
     class Meta:
         model = Team
-        fields = ['leader', 'status', 'list_of_members']
+        fields = ["leader", "status", "list_of_members"]
 
     def get_list_of_members(self, obj: Team):
         return [member.username for member in obj.list_of_members.all()]
+
+
+class CreateTeamSerializer(TeamSerializer):
+    list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True)
+
+    class Meta:
+        model = Team
+        fields = ["status", "list_of_members"]
+
+    def create(self, validated_data):
+        leader = self.context["request"].user
+        list_of_members = validated_data.pop("list_of_members", [])
+
+        team = Team.objects.create(leader=leader, status=validated_data.get("status", "available"))
+        members = CustomUser.objects.filter(id__in=list_of_members)
+        team.list_of_members.set(members)
+        team.list_of_members.add(self.context["request"].user)
+        CustomUser.objects.filter(id__in=list_of_members).update(is_team_member=True)
+        team.save()
+
+        return team
+
+
+class UpdateTeamSerializer(TeamSerializer):
+    leader_id = serializers.IntegerField()
+    list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=True)
+    status = serializers.CharField()
+
+    class Meta:
+        model = Team
+        fields = ["leader_id", "status", "list_of_members"]
+
+    def validate(self, attrs: dict) -> dict:
+        if attrs["leader_id"] not in attrs["list_of_members"]:
+            raise serializers.ValidationError({"leader_id": f"You cannot remove this member: {attrs['leader_id']}"})
+        return attrs
+
+    def update(self, instance, validated_data):
+        current_members_ids = (
+            set(member.id for member in instance.list_of_members.all())
+            if instance.list_of_members.filter(id=self.context["request"].user.id).exists()
+            else set()
+        )
+
+        instance.leader = CustomUser.objects.get(id=validated_data.get("leader_id", instance.leader.id))
+        instance.status = validated_data.get("status", instance.status)
+        new_members_ids = set(validated_data.pop("list_of_members", []))
+
+        members_to_add = new_members_ids - current_members_ids
+        members_to_remove = current_members_ids - new_members_ids
+
+        if members_to_add or members_to_remove:
+            updated_members = CustomUser.objects.filter(id__in=new_members_ids)
+            instance.list_of_members.set(updated_members)
+            CustomUser.objects.filter(id__in=members_to_add).update(is_team_member=True)
+            CustomUser.objects.filter(id__in=members_to_remove).update(is_team_member=False)
+
+        instance.save()
+
+        return instance

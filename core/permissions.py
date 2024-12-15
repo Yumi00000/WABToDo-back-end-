@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import permissions
 
 from users.models import Team
@@ -18,13 +19,14 @@ class IsOrderOwnerOrAdmin(permissions.BasePermission):
         return False
 
 
-
 class IsAdminOrStaff(permissions.BasePermission):
     """
     Allow access only to admin and staff users like managers
     """
 
     def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
         return bool(request.user and (request.user.is_staff or request.user.is_admin))
 
 
@@ -33,10 +35,12 @@ class IsTeamMemberOrLeader(permissions.BasePermission):
     Custom permission to allow only team members or the team leader to view team information.
     """
 
-    def has_object_permission(self, request, view, obj):
-        if not isinstance(obj, Team):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
             return False
 
-        user = request.user
-        return user == obj.leader or obj.list_of_members.filter(id=user.id).exists()
+        user_team = Team.objects.filter(Q(list_of_members=request.user) | Q(leader=request.user)).exists()
+        if not user_team:
+            return False
 
+        return True

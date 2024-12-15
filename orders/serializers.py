@@ -4,7 +4,7 @@ from rest_framework import serializers
 from orders.models import Order
 from orders.utils import change_date_format
 from tasks.models import Task
-from tasks.serializers import TaskSerializer
+from tasks.serializers import BaseTaskSerializer
 from users.models import Team
 
 
@@ -36,7 +36,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def get_tasks(self, obj):
         tasks = Task.objects.filter(order=obj)
-        return TaskSerializer(tasks, many=True).data
+        return BaseTaskSerializer(tasks, many=True).data
 
     def validate(self, attrs):
         self._validate_name(attrs.get("name"))

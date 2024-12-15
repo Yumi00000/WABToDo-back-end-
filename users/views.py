@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
-import core.permissions as c_prm
+from core import permissions as c_prm
 from orders.models import Order
 from users import serializers
 from users.models import CustomUser, CustomAuthToken, Team
@@ -45,13 +45,38 @@ class DashboardView(generics.ListAPIView, GenericViewSet):
     def get_queryset(self):
         user = self.request.user
         owner_orders = Q(owner=user)
-        team_orders = Q(team__members__user=user)
+        team_orders = Q(team__list_of_members=user)
         queryset = Order.objects.filter(owner_orders | team_orders).distinct()
 
         return queryset
 
 
-class TeamsView(generics.ListAPIView, GenericViewSet):
+class TeamsListView(generics.ListAPIView, GenericViewSet):
     queryset = Team.objects.all()
     permission_classes = [c_prm.IsTeamMemberOrLeader]
     serializer_class = serializers.TeamSerializer
+
+
+class TeamsCreateView(generics.CreateAPIView, GenericViewSet):
+    queryset = Team.objects.all()
+    permission_classes = [permissions.IsAuthenticated, c_prm.IsAdminOrStaff]
+    serializer_class = serializers.CreateTeamSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(leader=self.request.user)
+
+
+class UpdateTeamView(generics.UpdateAPIView, GenericViewSet):
+    queryset = Team.objects.all()
+    permission_classes = [c_prm.IsAdminOrStaff, c_prm.IsTeamMemberOrLeader]
+    serializer_class = serializers.UpdateTeamSerializer
+
+
+class TeamView(generics.RetrieveAPIView, GenericViewSet):
+    queryset = Team.objects.all()
+    permission_classes = [permissions.IsAuthenticated, c_prm.IsTeamMemberOrLeader]
+    serializer_class = serializers.TeamSerializer
+
+    def get_queryset(self):
+        team_id = self.kwargs["pk"]
+        return Team.objects.filter(pk=team_id).all()
