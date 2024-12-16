@@ -128,7 +128,7 @@ class CommentConsumer(AsyncWebsocketConsumer):
             return
 
         try:
-            comment = await sync_to_async(Comment.objects.get)(id=comment_id)
+            comment = await sync_to_async(Comment.objects.get)(id=comment_id, member_id=data["member_id"])
             await sync_to_async(comment.delete)()
 
             response = {
@@ -352,7 +352,7 @@ class MessageConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(error_message))
             return
         try:
-            msg = await sync_to_async(Message.objects.get)(id=msg_id)
+            msg = await sync_to_async(Message.objects.get)(id=msg_id, sender_id=data["sender_id"])
             await sync_to_async(msg.delete)()
 
             response = {"type": "send_message", "message": f"Message {msg_id} has been successfully deleted."}
