@@ -136,7 +136,6 @@ class SendCommentConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(error_message))
             logger.error(f"Comment with ID {comment_id} does not exist.")
 
-
     async def send_comment(self, event):
         await self.send(
             text_data=json.dumps(

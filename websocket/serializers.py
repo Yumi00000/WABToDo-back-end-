@@ -26,7 +26,6 @@ class UpdateCommentSerializer(serializers.ModelSerializer):
         read_only_fields = ["task_id", "updated_at"]
 
 
-
 class NotificationSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(write_only=True)
     content = serializers.JSONField()
