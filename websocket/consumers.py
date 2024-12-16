@@ -3,10 +3,11 @@ import logging
 
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.utils import timezone
 
 from users.models import CustomUser, Participant
 from websocket.models import Comment, Notification, Message
-from websocket.serializers import CommentSerializer, NotificationSerializer, MessageSerializer
+from websocket.serializers import CommentSerializer, NotificationSerializer, MessageSerializer, UpdateCommentSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +41,15 @@ class SendCommentConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
         logger.debug(f"Received data: {data}")
+        action = data.get("action")
+        if action == "create":
+            await self.handle_create(data)
+        if action == "update":
+            await self.handle_update(data)
+        if action == "delete":
+            await self.handle_delete(data)
 
-        # Validate the incoming data using the serializer
+    async def handle_create(self, data):
         serializer = CommentSerializer(data=data)
         if not serializer.is_valid():
             error_message = {"type": "error", "errors": serializer.errors}
@@ -74,6 +82,60 @@ class SendCommentConsumer(AsyncWebsocketConsumer):
 
         # Send the response to the group
         await self.channel_layer.group_send(self.group_name, response)
+
+    async def handle_update(self, data):
+        serializer = UpdateCommentSerializer(data=data)
+        if not serializer.is_valid():
+            error_message = {"type": "error", "errors": serializer.errors}
+            await self.send(text_data=json.dumps(error_message))
+            return
+
+        validated_data = serializer.validated_data
+        comment_id = validated_data["pk"]
+        content = validated_data["content"]
+        member_id = validated_data["member_id"]
+
+        # Update the comment and fetch the updated instance
+        rows_updated = await sync_to_async(Comment.objects.filter(id=comment_id, member_id=member_id).update)(
+            content=content
+        )
+        if rows_updated == 0:
+            error_message = {"type": "error", "message": "Comment not found or you don't have permission to update it."}
+            await self.send(text_data=json.dumps(error_message))
+            return
+
+        updated_comment = await sync_to_async(Comment.objects.get)(id=comment_id)
+
+        logger.info(f"Comment updated: {comment_id}")
+        response_serializer = UpdateCommentSerializer(updated_comment)
+        response = {
+            "type": "send_comment",
+            "comment": response_serializer.data,
+        }
+        await self.channel_layer.group_send(self.group_name, response)
+
+    async def handle_delete(self, data):
+        comment_id = data.get("pk")
+        if not comment_id:
+            error_message = {"type": "error", "message": "Comment ID is required for deletion."}
+            await self.send(text_data=json.dumps(error_message))
+            return
+
+        try:
+            comment = await sync_to_async(Comment.objects.get)(id=comment_id)
+            await sync_to_async(comment.delete)()
+
+            response = {
+                "type": "send_comment",
+                "message": f"Comment {comment_id} deleted successfully.",
+            }
+            await self.channel_layer.group_send(self.group_name, response)
+
+        except Comment.DoesNotExist:
+            error_message = {"type": "error", "message": f"Comment with ID {comment_id} does not exist."}
+            await self.send(text_data=json.dumps(error_message))
+            logger.error(f"Comment with ID {comment_id} does not exist.")
+
 
     async def send_comment(self, event):
         await self.send(

@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from websocket.models import Comment, Notification, Message
@@ -12,6 +13,18 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ["content", "member_id", "task_id", "created_at"]
         read_only_fields = ["created_at"]
+
+
+class UpdateCommentSerializer(serializers.ModelSerializer):
+    pk = serializers.IntegerField(write_only=True)
+    member_id = serializers.IntegerField(write_only=True)
+    content = serializers.JSONField()
+
+    class Meta:
+        model = Comment
+        fields = ["content", "updated_at", "pk", "member_id", "task_id"]
+        read_only_fields = ["task_id", "updated_at"]
+
 
 
 class NotificationSerializer(serializers.ModelSerializer):
