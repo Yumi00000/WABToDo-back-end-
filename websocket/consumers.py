@@ -166,6 +166,13 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
+        action = data.get("action")
+        if action == "create":
+            await self.handle_create(data)
+        if action == "delete":
+            await self.handle_delete(data)
+
+    async def handle_create(self, data):
         logger.debug(f"Received data: {data}")
         serializer = NotificationSerializer(data=data)
 
@@ -189,6 +196,35 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "type": "send_notification",
         }
         await self.channel_layer.group_send(self.group_name, response)
+
+    async def handle_delete(self, data):
+        notifications_ids = data.get("notifications_ids")
+        user_id = data.get("user_id")
+        if notifications_ids is not list:
+            error_message = {"type": "error", "errors": {"notifications_ids": notifications_ids}}
+            await self.send(text_data=json.dumps(error_message))
+        usr_notifies_ids = [
+            notification_id
+            for notification_id in notifications_ids
+            if await sync_to_async(Notification.objects.filter(id=notification_id, user_id=user_id).exists)()
+        ]
+
+        for usr_notify_ids in usr_notifies_ids:
+            try:
+
+                notify = await sync_to_async(Notification.objects.filter)(id=usr_notify_ids)
+                await sync_to_async(notify.delete)()
+                logger.info(f"Notification with ID: {usr_notify_ids} successfully deleted.")
+                response = {
+                    "type": "send_notification",
+                    "message": f"Notification with ID: {usr_notify_ids} deleted successfully.",
+                }
+                await self.channel_layer.group_send(self.group_name, response)
+
+            except Notification.DoesNotExist:
+                error_response = {"type": "error", "message": "Notification not found"}
+                await self.send(text_data=json.dumps(error_response))
+                logger.error(f"Notification with ID: {usr_notify_ids} does not exist.")
 
     async def send_notification(self, event):
         await self.send(
