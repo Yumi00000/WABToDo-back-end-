@@ -3,11 +3,16 @@ import logging
 
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from django.utils import timezone
 
 from users.models import CustomUser, Participant
 from websocket.models import Comment, Notification, Message
-from websocket.serializers import CommentSerializer, NotificationSerializer, MessageSerializer, UpdateCommentSerializer
+from websocket.serializers import (
+    CommentSerializer,
+    NotificationSerializer,
+    MessageSerializer,
+    UpdateCommentSerializer,
+    UpdateMessageSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +29,7 @@ def get_chat_participants(chat_id, sender_id):
     return list(participants)
 
 
-class SendCommentConsumer(AsyncWebsocketConsumer):
+class CommentConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.group_name = "comments_room"
@@ -192,7 +197,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         )
 
 
-class SendMessageConsumer(AsyncWebsocketConsumer):
+class MessageConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.group_name = "messages_room"
@@ -207,8 +212,18 @@ class SendMessageConsumer(AsyncWebsocketConsumer):
         logger.info(f"WebSocket disconnected from group: {self.group_name}")
 
     async def receive(self, text_data=None, bytes_data=None):
+
         data = json.loads(text_data)
         logger.debug(f"Received data: {data}")
+        action = data.get("action")
+        if action == "create":
+            await self.handle_create(data)
+        if action == "update":
+            await self.handle_update(data)
+        if action == "delete":
+            await self.handle_delete(data)
+
+    async def handle_create(self, data):
         serializer = MessageSerializer(data=data)
 
         if not serializer.is_valid():
@@ -258,6 +273,52 @@ class SendMessageConsumer(AsyncWebsocketConsumer):
 
         # Send message to `messages_room`
         await self.channel_layer.group_send(self.group_name, response)
+
+    async def handle_update(self, data):
+        serializer = UpdateMessageSerializer(data=data)
+        if not serializer.is_valid():
+            error_message = {"type": "error", "errors": serializer.errors}
+            await self.send(text_data=json.dumps(error_message))
+            return
+        validated_data = serializer.validated_data
+        msg_id = validated_data["pk"]
+        chat_id = validated_data["chat_id"]
+        sender_id = validated_data["sender_id"]
+        content = validated_data["content"]
+
+        rows_updated_msg = await sync_to_async(
+            Message.objects.filter(id=msg_id, chat_id=chat_id, sender_id=sender_id).update
+        )(content=content)
+        if rows_updated_msg == 0:
+            error_message = {"type": "error", "message": "Message not found or you don't have permission to update it."}
+            await self.send(text_data=json.dumps(error_message))
+            return
+        updated_msg = await sync_to_async(Message.objects.get)(id=msg_id)
+        logger.info(f"Message updated: {msg_id}")
+        response_serializer = MessageSerializer(updated_msg)
+        response = {
+            "type": "send_message",
+            "content": response_serializer.data,
+        }
+        await self.channel_layer.group_send(self.group_name, response)
+
+    async def handle_delete(self, data):
+        msg_id = data["pk"]
+        if not msg_id:
+            error_message = {"type": "error", "message": "Message not found."}
+            await self.send(text_data=json.dumps(error_message))
+            return
+        try:
+            msg = await sync_to_async(Message.objects.get)(id=msg_id)
+            await sync_to_async(msg.delete)()
+
+            response = {"type": "send_message", "message": f"Message {msg_id} has been successfully deleted."}
+            await self.channel_layer.group_send(self.group_name, response)
+        except Message.DoesNotExist:
+            error_message = {"type": "error", "message": "Message not found."}
+            await self.send(text_data=json.dumps(error_message))
+            logger.error(f"Message with id {msg_id} does not exist")
+            return
 
     async def send_message(self, event):
         await self.send(

@@ -1,4 +1,3 @@
-from django.utils import timezone
 from rest_framework import serializers
 
 from websocket.models import Comment, Notification, Message
@@ -45,3 +44,15 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ["chat_id", "sender_id", "content", "created_at"]
         read_only_fields = ["created_at"]
+
+
+class UpdateMessageSerializer(serializers.ModelSerializer):
+    pk = serializers.IntegerField(write_only=True)
+    chat_id = serializers.IntegerField(write_only=True)
+    sender_id = serializers.IntegerField(write_only=True)
+    content = serializers.JSONField()
+
+    class Meta:
+        model = Message
+        fields = ["pk", "chat_id", "sender_id", "content", "updated_at"]
+        read_only_fields = ["updated_at"]
