@@ -17,8 +17,9 @@ application = ProtocolTypeRouter(
         "websocket": WebSocketJWTAuthMiddleware(
             URLRouter(
                 [
-                    re_path(r"^ws/comnt/$", consumers.CommentConsumer.as_asgi()),
+                    re_path(r"^ws/comnt/$", consumers.SendCommentConsumer.as_asgi()),
                     re_path(r"^ws/notify/$", consumers.NotificationConsumer.as_asgi()),
+                    re_path(r"^ws/msg/$", consumers.SendMessageConsumer.as_asgi()),
                 ]
             )
         ),
