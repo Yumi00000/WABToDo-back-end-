@@ -200,31 +200,38 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     async def handle_delete(self, data):
         notifications_ids = data.get("notifications_ids")
         user_id = data.get("user_id")
-        if notifications_ids is not list:
-            error_message = {"type": "error", "errors": {"notifications_ids": notifications_ids}}
+
+        if not isinstance(notifications_ids, list):
+            error_message = {
+                "type": "error",
+                "errors": {"notifications_ids": "Invalid data format. Expected a list."},
+            }
             await self.send(text_data=json.dumps(error_message))
+            return
+
         usr_notifies_ids = [
             notification_id
             for notification_id in notifications_ids
             if await sync_to_async(Notification.objects.filter(id=notification_id, user_id=user_id).exists)()
         ]
 
-        for usr_notify_ids in usr_notifies_ids:
-            try:
+        deleted_count = await sync_to_async(
+            Notification.objects.filter(id__in=usr_notifies_ids, user_id=user_id).delete
+        )()
 
-                notify = await sync_to_async(Notification.objects.filter)(id=usr_notify_ids)
-                await sync_to_async(notify.delete)()
-                logger.info(f"Notification with ID: {usr_notify_ids} successfully deleted.")
-                response = {
-                    "type": "send_notification",
-                    "message": f"Notification with ID: {usr_notify_ids} deleted successfully.",
-                }
-                await self.channel_layer.group_send(self.group_name, response)
-
-            except Notification.DoesNotExist:
-                error_response = {"type": "error", "message": "Notification not found"}
-                await self.send(text_data=json.dumps(error_response))
-                logger.error(f"Notification with ID: {usr_notify_ids} does not exist.")
+        if deleted_count[0] > 0:
+            logger.info(f"{deleted_count[0]} notifications deleted for user ID: {user_id}.")
+            response = {
+                "type": "send_notification",
+                "message": f"{deleted_count[0]} notifications deleted successfully.",
+            }
+            await self.channel_layer.group_send(self.group_name, response)
+        else:
+            error_response = {
+                "type": "error",
+                "message": "No notifications found to delete.",
+            }
+            await self.send(text_data=json.dumps(error_response))
 
     async def send_notification(self, event):
         await self.send(
