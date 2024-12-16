@@ -3,6 +3,7 @@ import logging
 
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.utils import timezone
 
 from users.models import CustomUser, Participant
 from websocket.models import Comment, Notification, Message
@@ -102,7 +103,7 @@ class CommentConsumer(AsyncWebsocketConsumer):
 
         # Update the comment and fetch the updated instance
         rows_updated = await sync_to_async(Comment.objects.filter(id=comment_id, member_id=member_id).update)(
-            content=content
+            content=content, updated_at=timezone.now()
         )
         if rows_updated == 0:
             error_message = {"type": "error", "message": "Comment not found or you don't have permission to update it."}
@@ -212,7 +213,6 @@ class MessageConsumer(AsyncWebsocketConsumer):
         logger.info(f"WebSocket disconnected from group: {self.group_name}")
 
     async def receive(self, text_data=None, bytes_data=None):
-
         data = json.loads(text_data)
         logger.debug(f"Received data: {data}")
         action = data.get("action")
@@ -288,7 +288,7 @@ class MessageConsumer(AsyncWebsocketConsumer):
 
         rows_updated_msg = await sync_to_async(
             Message.objects.filter(id=msg_id, chat_id=chat_id, sender_id=sender_id).update
-        )(content=content)
+        )(content=content, updated_at=timezone.now())
         if rows_updated_msg == 0:
             error_message = {"type": "error", "message": "Message not found or you don't have permission to update it."}
             await self.send(text_data=json.dumps(error_message))
