@@ -59,7 +59,7 @@ class TeamsListView(generics.ListAPIView, GenericViewSet):
 
 class TeamsCreateView(generics.CreateAPIView, GenericViewSet):
     queryset = Team.objects.all()
-    permission_classes = [permissions.IsAuthenticated, c_prm.IsAdminOrStaff]
+    permission_classes = [c_prm.IsAdminOrStaff]
     serializer_class = serializers.CreateTeamSerializer
 
     def perform_create(self, serializer):
@@ -74,7 +74,7 @@ class UpdateTeamView(generics.UpdateAPIView, GenericViewSet):
 
 class TeamView(generics.RetrieveAPIView, GenericViewSet):
     queryset = Team.objects.all()
-    permission_classes = [permissions.IsAuthenticated, c_prm.IsTeamMemberOrLeader]
+    permission_classes = [c_prm.IsTeamMemberOrLeader]
     serializer_class = serializers.TeamSerializer
 
     def get_queryset(self):
