@@ -30,7 +30,7 @@ class IsAdminOrStaff(permissions.BasePermission):
         return bool(request.user and (request.user.is_staff or request.user.is_admin))
 
 
-class IsTeamMemberOrLeader(permissions.BasePermission):
+class IsTeamMemberOrAdmin(permissions.BasePermission):
     """
     Custom permission to allow only team members or the team leader to view team information.
     """
@@ -39,8 +39,5 @@ class IsTeamMemberOrLeader(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        user_team = Team.objects.filter(Q(list_of_members=request.user) | Q(leader=request.user)).exists()
-        if not user_team:
-            return False
-
-        return True
+        user_team_exist = Team.objects.filter(Q(list_of_members=request.user) | Q(leader=request.user)).exists()
+        return bool(request.user and (request.user.is_staff or request.user.is_admin or user_team_exist))
