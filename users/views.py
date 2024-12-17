@@ -32,8 +32,10 @@ class LoginView(APIView):
             user=user,
             user_agent=user_agent,
         )
-        if token and token.is_valid():
-            return Response({"token": token.key}, status=status.HTTP_200_OK)
+        if not created and not token.is_valid():
+            token.delete()
+            new_token = CustomAuthToken.objects.create(user=user, user_agent=user_agent)
+            return Response({"token": new_token.key}, status=status.HTTP_200_OK)
 
         return Response({"token": token.key}, status=status.HTTP_201_CREATED)
 
