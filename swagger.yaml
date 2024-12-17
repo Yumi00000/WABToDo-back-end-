@@ -532,7 +532,7 @@ paths:
                 leader:
                   type: integer
                   description: User ID of the team leader
-                members:
+                list_of_members:
                   type: array
                   items:
                     type: integer
@@ -543,10 +543,10 @@ paths:
                   description: Status of the team
               required:
                 - leader
-                - members
+                - list_of_members
             example:
               leader: 1
-              members: [ 2, 3, 4 ]
+              list_of_members: [ 2, 3, 4 ]
               status: available
 
       responses:
@@ -569,7 +569,7 @@ paths:
                         type: string
                       lastName:
                         type: string
-                  members:
+                  list_of_members:
                     type: array
                     items:
                       type: object
@@ -589,7 +589,7 @@ paths:
                   id: 1
                   firstName: "John"
                   lastName: "Doe"
-                members:
+                list_of_members:
                   - id: 2
                     firstName: "Alice"
                     lastName: "Smith"
@@ -634,7 +634,7 @@ paths:
                 leader:
                   type: integer
                   description: (Optional) Updated user ID of the team leader
-                members:
+                list_of_members:
                   type: array
                   items:
                     type: integer
@@ -644,10 +644,10 @@ paths:
                   description: (Optional) Updated status of the team
                   enum: [ available, unavailable ]
               required:
-                - members
+                - list_of_members
             example:
               leader: 1
-              members: [ 2, 3 ]
+              list_of_members: [ 2, 3 ]
               status: available
 
       responses:
@@ -670,7 +670,7 @@ paths:
                         type: string
                       lastName:
                         type: string
-                  members:
+                  list_of_members:
                     type: array
                     items:
                       type: object
@@ -690,7 +690,7 @@ paths:
                   id: 1
                   firstName: "John"
                   lastName: "Doe"
-                members:
+                list_of_members:
                   - id: 2
                     firstName: "Alice"
                     lastName: "Smith"
