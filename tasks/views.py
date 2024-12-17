@@ -42,3 +42,8 @@ class UpdateTaskView(generics.UpdateAPIView, GenericViewSet):
     queryset = Task.objects.all()
     permission_classes = [custom_perm.IsTeamMemberOrAdmin]
     serializer_class = serializers.EditTaskSerializer
+
+
+class DeleteTaskView(generics.DestroyAPIView, GenericViewSet):
+    queryset = Task.objects.all()
+    permission_classes = [custom_perm.IsTeamMemberOrAdmin]
