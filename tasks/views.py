@@ -20,9 +20,14 @@ class GetTeamTasksView(generics.ListAPIView, GenericViewSet):
         user = self.request.user
         order_id = self.request.data.get("orderId", None)
         team_id = self.request.data.get("teamId", None)
+        status_filter = self.request.query_params.get("status", None)
+
         queryset = Task.objects.filter(
             Q(team__leader=user) | Q(team__list_of_members=user) | Q(order_id=order_id) | Q(team_id=team_id)
         ).distinct()
+
+        if not status_filter:
+            queryset = queryset.filter(status="active")
 
         return queryset
 
