@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "channels_redis",
     "channels",
+    "drf_spectacular",
 ]
 
 ASGI_APPLICATION = "websocket.asgi.application"
@@ -164,7 +165,8 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "core.authentication.CustomJWTAuthentication",
     ],
-    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    # "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 # Logging
@@ -205,3 +207,20 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
 CELERY_TASK_BACKEND = "rpc://"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# Swagger rendering config
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API Documentation",
+    "DESCRIPTION": "Описание вашего API",
+    "VERSION": "1.0.0",
+    "SECURITY": [
+        {"bearerAuth": []},
+    ],
+    "SECURITY_DEFINITIONS": {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    },
+}
