@@ -77,12 +77,12 @@ paths:
             schema:
               type: object
               properties:
-                email:
+                username:
                   type: string
                 password:
                   type: string
               required:
-                - email
+                - username
                 - password
 
       responses:
@@ -257,7 +257,7 @@ paths:
                   acceptedAt: null
                   accepted: false
                   team: null
-                  tasks: null
+                  tasks: [ ]
                   status: active
 
         '403':
@@ -412,7 +412,7 @@ paths:
                   enum: [ active, closed ]
               required:
                 - accepted
-                - teamId
+                - team
               example:
                 accepted: true
                 team: 1
@@ -756,8 +756,6 @@ paths:
                 title: First task
                 description: Task description
                 executor: 1
-                team: 1
-                order: 1
                 deadline: 2024-12-09
 
       responses:
@@ -878,7 +876,7 @@ paths:
                   format: date
                   description: New deadline for the task.
                 status:
-                  enum: [ pending, in_process, closed ]
+                  enum: [ pending, active, closed ]
               example:
                 title: Updated task title
                 description: Updated task description

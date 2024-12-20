@@ -13,10 +13,7 @@ class IsOrderOwnerOrAdmin(permissions.BasePermission):
         if request.user and request.user.is_staff:
             return True
 
-        if hasattr(obj, "owner") and obj.owner == request.user:
-            return True
-
-        return False
+        return obj.owner == request.user
 
 
 class IsAdminOrStaff(permissions.BasePermission):

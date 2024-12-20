@@ -211,7 +211,7 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 # Swagger rendering config
 SPECTACULAR_SETTINGS = {
     "TITLE": "API Documentation",
-    "DESCRIPTION": "Описание вашего API",
+    "DESCRIPTION": "API Description",
     "VERSION": "1.0.0",
     "SECURITY": [
         {"bearerAuth": []},
