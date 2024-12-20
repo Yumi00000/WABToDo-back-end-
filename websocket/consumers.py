@@ -18,6 +18,22 @@ from websocket.serializers import (
 logger = logging.getLogger(__name__)
 
 
+class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.group_name = None
+
+    async def connect(self):
+        logger.info("WebSocket connected")
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        await self.close()
+        logger.info("WebSocket disconnected")
+
+
 @sync_to_async
 def get_username(user_pk):
     db_response = CustomUser.objects.get(id=user_pk).username
@@ -30,15 +46,10 @@ def get_chat_participants(chat_id, sender_id):
     return list(participants)
 
 
-class CommentConsumer(AsyncWebsocketConsumer):
+class CommentConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.group_name = "comments_room"
-
-    async def connect(self):
-        logger.info("WebSocket connected")
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
@@ -150,19 +161,10 @@ class CommentConsumer(AsyncWebsocketConsumer):
         )
 
 
-class NotificationConsumer(AsyncWebsocketConsumer):
+class NotificationConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.group_name = "notifications_room"
-
-    async def connect(self):
-        logger.info("WebSocket connected")
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        logger.info(f"WebSocket disconnected from group: {self.group_name}")
 
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
@@ -241,19 +243,10 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         )
 
 
-class MessageConsumer(AsyncWebsocketConsumer):
+class MessageConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.group_name = "messages_room"
-
-    async def connect(self):
-        logger.info("WebSocket connected")
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        logger.info(f"WebSocket disconnected from group: {self.group_name}")
 
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
