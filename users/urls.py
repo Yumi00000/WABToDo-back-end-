@@ -15,7 +15,6 @@ urlpatterns = router.urls
 urlpatterns += [
     path("login/", views.LoginView.as_view(), name="account_login"),
     path("auth/google/", GoogleLoginView.as_view(), name="google_login"),
-    re_path(r"^api/v1/auth/accounts/", include("allauth.urls")),
     path(
         "auth/google/callback/",
         GoogleLoginCallback.as_view(),

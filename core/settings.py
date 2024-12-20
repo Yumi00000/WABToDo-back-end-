@@ -60,7 +60,7 @@ INSTALLED_APPS = [
 ]
 
 SITE_ID = 1
-REST_USE_JWT = True
+
 
 ASGI_APPLICATION = "websocket.asgi.application"
 
@@ -173,11 +173,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
         "core.authentication.CustomJWTAuthentication",
-        "dj_rest_auth.jwt_auth.JWTAuthentication",
-    ],
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
-    ],
+    ]
 }
 
 REST_USE_JWT = True
@@ -223,37 +219,29 @@ CELERY_TASK_BACKEND = "rpc://"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # SocialAccount configuration
-
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
-SOCIALACCOUNT_LOGIN_ON_GET = True
-
-SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "FETCH_USERINFO": True,
-        "SCOPE": ["profile", "email"],
-        "APP": {
-            "client_id": config("DJANGO_GOOGLE_OAUTH2_CLIENT_ID"),
-            "secret": config("DJANGO_GOOGLE_OAUTH2_CLIENT_SECRET"),
-            "key":"",
-        },
-        "AUTH_PARAMS": {"access_type": "offline"},
-    },
-}
-SOCIALACCOUNT_ADAPTER = "allauth.socialaccount.adapter.DefaultSocialAccountAdapter"
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
-
-REST_AUTH_SERIALIZERS = {
-    "USER_DETAILS_SERIALIZER": "users.serializers.CustomUserDetailsSerializer",
-}
-
-REST_AUTH_REGISTER_SERIALIZERS = {
-    "REGISTER_SERIALIZER": "users.serializers.RegistrationSerializer",
-}
-
-
 GOOGLE_OAUTH2_CLIENT_ID = config("DJANGO_GOOGLE_OAUTH2_CLIENT_ID", default="")
 GOOGLE_OAUTH2_CLIENT_SECRET = config("DJANGO_GOOGLE_OAUTH2_CLIENT_SECRET", default="")
 GOOGLE_OAUTH2_PROJECT_ID = config("DJANGO_GOOGLE_OAUTH2_PROJECT_ID", default="")
 GOOGLE_OAUTH_CALLBACK_URL = config("GOOGLE_OAUTH_CALLBACK_URL")
 SOCIAL_AUTH_GOOGLE_TOKEN_URL = config("SOCIAL_AUTH_GOOGLE_OAUTH2_TOKEN_URL")
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "FETCH_USERINFO": True,
+        "SCOPE": ["profile", "email"],
+        "APP": {
+            "client_id": GOOGLE_OAUTH2_CLIENT_ID,
+            "secret": GOOGLE_OAUTH2_CLIENT_SECRET,
+            "key":"",
+        },
+        "AUTH_PARAMS": {"access_type": "offline"},
+    },
+}
+
+
+
+ACCOUNT_AUTHENTICATION_METHOD = "email"  # Use Email / Password authentication
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "none" # Do not require email confirmation

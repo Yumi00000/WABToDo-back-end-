@@ -84,12 +84,16 @@ class GoogleLoginCallback(APIView):
 
         response = requests.post(token_url)
 
-        try:
-            token_data = response.json()
-        except ValueError:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        print(response.json())
 
-        return Response(token_data, status=status.HTTP_200_OK)
+        ensured_data_url = urljoin("http://localhost:8000", reverse("google_login"))
+
+        response_login = requests.post(ensured_data_url, data={"access_token": response.json()["access_token"]})
+
+        try:
+            return Response(response_login, status=status.HTTP_200_OK)
+        except CustomAuthToken.DoesNotExist:
+            return Response({"detail": "Token not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
 class DashboardView(generics.ListAPIView, GenericViewSet):
