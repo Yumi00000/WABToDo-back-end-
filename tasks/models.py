@@ -3,6 +3,12 @@ from django.db import models
 from core import settings
 
 
+class TaskStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    ACTIVE = "active", "Active"
+    CLOSED = "closed", "Closed"
+
+
 class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -11,7 +17,7 @@ class Task(models.Model):
     )
     team = models.ForeignKey("users.Team", on_delete=models.CASCADE, related_name="tasks_team")
     order = models.ForeignKey("orders.Order", on_delete=models.CASCADE, related_name="tasks_order", null=True)
-    status = models.CharField(max_length=11, default="pending")
+    status = models.CharField(max_length=11, choices=TaskStatus.choices, default=TaskStatus.PENDING)
     deadline = models.DateField(null=True, blank=True)
 
     def __str__(self):

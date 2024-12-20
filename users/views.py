@@ -32,8 +32,10 @@ class LoginView(APIView):
             user=user,
             user_agent=user_agent,
         )
-        if token and token.is_valid():
-            return Response({"token": token.key}, status=status.HTTP_200_OK)
+        if not created and not token.is_valid():
+            token.delete()
+            new_token = CustomAuthToken.objects.create(user=user, user_agent=user_agent)
+            return Response({"token": new_token.key}, status=status.HTTP_200_OK)
 
         return Response({"token": token.key}, status=status.HTTP_201_CREATED)
 
@@ -53,13 +55,13 @@ class DashboardView(generics.ListAPIView, GenericViewSet):
 
 class TeamsListView(generics.ListAPIView, GenericViewSet):
     queryset = Team.objects.all()
-    permission_classes = [c_prm.IsTeamMemberOrLeader]
+    permission_classes = [c_prm.IsTeamMemberOrAdmin]
     serializer_class = serializers.TeamSerializer
 
 
 class TeamsCreateView(generics.CreateAPIView, GenericViewSet):
     queryset = Team.objects.all()
-    permission_classes = [permissions.IsAuthenticated, c_prm.IsAdminOrStaff]
+    permission_classes = [c_prm.IsAdminOrStaff]
     serializer_class = serializers.CreateTeamSerializer
 
     def perform_create(self, serializer):
@@ -68,13 +70,13 @@ class TeamsCreateView(generics.CreateAPIView, GenericViewSet):
 
 class UpdateTeamView(generics.UpdateAPIView, GenericViewSet):
     queryset = Team.objects.all()
-    permission_classes = [c_prm.IsAdminOrStaff, c_prm.IsTeamMemberOrLeader]
+    permission_classes = [c_prm.IsAdminOrStaff, c_prm.IsTeamMemberOrAdmin]
     serializer_class = serializers.UpdateTeamSerializer
 
 
 class TeamView(generics.RetrieveAPIView, GenericViewSet):
     queryset = Team.objects.all()
-    permission_classes = [permissions.IsAuthenticated, c_prm.IsTeamMemberOrLeader]
+    permission_classes = [c_prm.IsTeamMemberOrAdmin]
     serializer_class = serializers.TeamSerializer
 
     def get_queryset(self):
