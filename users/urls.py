@@ -1,12 +1,12 @@
 from allauth.account.views import ConfirmEmailView
-from django.urls import path, re_path
+from django.urls import path, re_path, include
 from rest_framework import routers
 
 from users import views
 from users.views import GoogleLoginView, GoogleLoginCallback
 
 router = routers.DefaultRouter()
-router.register(r"registration", views.RegistrationView, basename="register"),
+# router.register(r"registration", views.RegistrationView, basename="register"),
 router.register("dashboard", views.DashboardView, basename="dashboard")
 router.register("teams", views.TeamsListView, basename="teams")
 router.register("team/create", views.TeamsCreateView, basename="create_team")
@@ -26,4 +26,5 @@ urlpatterns += [
         ConfirmEmailView.as_view(),
         name="account_confirm_email",
     ),
+    path('registration/', include('dj_rest_auth.registration.urls')),
 ]

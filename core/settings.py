@@ -254,9 +254,8 @@ LOGIN_URL = "/admin"
 
 
 REST_AUTH = {
-    "LOGIN_SERIALIZER": "users.serializers.LoginSerializer",
+    "LOGIN_SERIALIZER": "users.serializers.CustomLoginSerializer",
     "REGISTER_SERIALIZER": "users.serializers.RegistrationSerializer",
-    "REGISTER_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "TOKEN_MODEL": "users.models.CustomAuthToken",
     "PASSWORD_RESET_USE_SITES_DOMAIN": False,
     "OLD_PASSWORD_FIELD_ENABLED": False,
