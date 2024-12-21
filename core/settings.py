@@ -61,7 +61,6 @@ INSTALLED_APPS = [
 
 SITE_ID = 1
 
-
 ASGI_APPLICATION = "websocket.asgi.application"
 
 CHANNEL_LAYERS = {
@@ -176,9 +175,6 @@ REST_FRAMEWORK = {
     ]
 }
 
-REST_USE_JWT = True
-
-
 # Logging
 LOGGING = {
     "version": 1,
@@ -239,8 +235,31 @@ SOCIALACCOUNT_PROVIDERS = {
     },
 }
 
-
 ACCOUNT_AUTHENTICATION_METHOD = "email"  # Use Email / Password authentication
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "none"  # Do not require email confirmation
+
+
+# Email manager configuration
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("GMAIL_APP_PASSWORD_KEY")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+LOGIN_URL = "/admin"
+
+
+REST_AUTH = {
+    "LOGIN_SERIALIZER": "users.serializers.LoginSerializer",
+    "REGISTER_SERIALIZER": "users.serializers.RegistrationSerializer",
+    "REGISTER_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    "TOKEN_MODEL": "users.models.CustomAuthToken",
+    "PASSWORD_RESET_USE_SITES_DOMAIN": False,
+    "OLD_PASSWORD_FIELD_ENABLED": False,
+    "LOGOUT_ON_PASSWORD_CHANGE": True,
+    "SESSION_LOGIN": True,
+}

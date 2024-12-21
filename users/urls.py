@@ -1,4 +1,5 @@
-from django.urls import path, re_path, include
+from allauth.account.views import ConfirmEmailView
+from django.urls import path, re_path
 from rest_framework import routers
 
 from users import views
@@ -19,5 +20,10 @@ urlpatterns += [
         "auth/google/callback/",
         GoogleLoginCallback.as_view(),
         name="google_login_callback",
+    ),
+    re_path(
+        "registration/account-confirm-email/(?P<key>[-:\w]+)/$",
+        ConfirmEmailView.as_view(),
+        name="account_confirm_email",
     ),
 ]
