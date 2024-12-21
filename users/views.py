@@ -58,24 +58,24 @@ from users.models import CustomAuthToken, Team
 #
 #         return Response({"token": token.key}, status=status.HTTP_201_CREATED)
 
-
-class LogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    logger = logging.getLogger()
-
-    def post(self, request):
-        user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
-        try:
-            token = CustomAuthToken.objects.get(user=request.user, user_agent=user_agent)
-            token.status = "Offline"
-            token.save()
-
-            self.logger.info("The user logged out successfully")
-            return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
-
-        except CustomAuthToken.DoesNotExist:
-            self.logger.error("Invalid token")
-            return Response({"detail": "Token not found."}, status=status.HTTP_404_NOT_FOUND)
+####?????####Maybe can be removed####?????####
+# class LogoutView(APIView):
+#     permission_classes = [permissions.IsAuthenticated]
+#     logger = logging.getLogger()
+#
+#     def post(self, request):
+#         user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
+#         try:
+#             token = CustomAuthToken.objects.get(user=request.user, user_agent=user_agent)
+#             token.status = "Offline"
+#             token.save()
+#
+#             self.logger.info("The user logged out successfully")
+#             return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+#
+#         except CustomAuthToken.DoesNotExist:
+#             self.logger.error("Invalid token")
+#             return Response({"detail": "Token not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
 class GoogleLoginView(SocialLoginView):
