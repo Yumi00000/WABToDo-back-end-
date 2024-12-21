@@ -233,15 +233,14 @@ SOCIALACCOUNT_PROVIDERS = {
         "APP": {
             "client_id": GOOGLE_OAUTH2_CLIENT_ID,
             "secret": GOOGLE_OAUTH2_CLIENT_SECRET,
-            "key":"",
+            "key": "",
         },
         "AUTH_PARAMS": {"access_type": "offline"},
     },
 }
 
 
-
 ACCOUNT_AUTHENTICATION_METHOD = "email"  # Use Email / Password authentication
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "none" # Do not require email confirmation
+ACCOUNT_EMAIL_VERIFICATION = "none"  # Do not require email confirmation

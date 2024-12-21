@@ -7,6 +7,7 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from dj_rest_auth.registration.views import SocialLoginView
 from django.db.models import Q
 from rest_framework import generics, permissions, status
+from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
@@ -14,7 +15,6 @@ from rest_framework.viewsets import GenericViewSet
 
 from core import permissions as c_prm, settings
 from orders.models import Order
-
 from users import serializers
 from users.models import CustomUser, CustomAuthToken, Team
 
@@ -76,24 +76,49 @@ class GoogleLoginCallback(APIView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
 
-        if code is None:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        if not code:
+            return Response({"detail": "Code parameter is missing."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Exchange code for access token
-        token_url = f"{settings.SOCIAL_AUTH_GOOGLE_TOKEN_URL}?code={code}&client_id={settings.GOOGLE_OAUTH2_CLIENT_ID}&client_secret={settings.GOOGLE_OAUTH2_CLIENT_SECRET}&redirect_uri={settings.GOOGLE_OAUTH_CALLBACK_URL}&grant_type=authorization_code"
+        token_url = (
+            f"{settings.SOCIAL_AUTH_GOOGLE_TOKEN_URL}?code={code}"
+            f"&client_id={settings.GOOGLE_OAUTH2_CLIENT_ID}"
+            f"&client_secret={settings.GOOGLE_OAUTH2_CLIENT_SECRET}"
+            f"&redirect_uri={settings.GOOGLE_OAUTH_CALLBACK_URL}"
+            f"&grant_type=authorization_code"
+        )
 
-        response = requests.post(token_url)
+        token_response = requests.post(token_url)
+        if token_response.status_code != 200:
+            return Response({"detail": "Failed to exchange code for token."}, status=status.HTTP_400_BAD_REQUEST)
 
-        print(response.json())
+        access_token = token_response.json().get("access_token")
+        if not access_token:
+            return Response({"detail": "Access token missing in response."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Login with the access token
         ensured_data_url = urljoin("http://localhost:8000", reverse("google_login"))
+        response_login = requests.post(ensured_data_url, data={"access_token": access_token})
+        if response_login.status_code != 200:
+            return Response({"detail": "Failed to authenticate user."}, status=status.HTTP_400_BAD_REQUEST)
 
-        response_login = requests.post(ensured_data_url, data={"access_token": response.json()["access_token"]})
+        login_data = response_login.json()
+        user_key = login_data.get("key")
+        if not user_key:
+            return Response({"detail": "Authentication key is missing."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            return Response(response_login, status=status.HTTP_200_OK)
-        except CustomAuthToken.DoesNotExist:
-            return Response({"detail": "Token not found."}, status=status.HTTP_404_NOT_FOUND)
+            user_id = Token.objects.get(key=user_key).user_id
+            c_user = CustomUser.objects.get(id=user_id)
+        except (Token.DoesNotExist, CustomUser.DoesNotExist):
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
+
+        # Create or retrieve the token
+        token, _ = CustomAuthToken.objects.get_or_create(user=c_user, user_agent=user_agent)
+
+        return Response({"token": token.key}, status=status.HTTP_200_OK)
 
 
 class DashboardView(generics.ListAPIView, GenericViewSet):
