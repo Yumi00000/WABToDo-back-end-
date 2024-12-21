@@ -90,7 +90,7 @@ class GetUnacceptedOrdersView(generics.ListAPIView, GenericViewSet):
 class OrderManagementView(generics.UpdateAPIView, GenericViewSet):
     queryset = Order.objects.all()
     permission_classes = [custom_perm.IsAdminOrStaff]
-    serializer_class = orders_serializers.AcceptOrderSerializer
+    serializer_class = orders_serializers.OrderManagementSerializer
 
     def update(self, request, *args, **kwargs):
         logger.info("User %s is attempting to update an order.", request.user.username)

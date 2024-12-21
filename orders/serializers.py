@@ -1,11 +1,10 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from orders.models import Order
-from orders.utils import change_date_format
+from orders.models import Order, OrderStatus
+from orders.utils import change_date_format, OrderManager
 from tasks.models import Task
 from tasks.serializers import BaseTaskSerializer
-from users.models import Team
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -111,7 +110,7 @@ class UnacceptedOrderSerializer(OrderSerializer):
         }
 
 
-class AcceptOrderSerializer(serializers.ModelSerializer):
+class OrderManagementSerializer(serializers.ModelSerializer):
     accepted = serializers.BooleanField()
     team = serializers.IntegerField(source="team.id")
     status = serializers.CharField(required=True)
@@ -121,10 +120,12 @@ class AcceptOrderSerializer(serializers.ModelSerializer):
         fields = ["accepted", "team", "status"]
 
     def validate(self, attrs):
-        status = attrs["status"]
-        if "team" in attrs:
-            attrs["team_instance"] = self._get_team(attrs)
+        self._validate_status(attrs)
 
+        if "team" in attrs:
+            attrs["team_instance"] = OrderManager.get_team(attrs)
+
+        status = attrs["status"]
         if status == "active" and attrs["team_instance"].status == "unavailable":
             raise serializers.ValidationError({"message": "This team is currently unavailable."})
 
@@ -136,11 +137,18 @@ class AcceptOrderSerializer(serializers.ModelSerializer):
         team_instance = validated_data.get("team_instance", instance.team)
 
         if is_accepted and order_status == "active":
-            return self._accept_order(instance, team_instance, order_status)
+            accepted_order = OrderManager.accept_order(instance, team_instance, order_status)
+            return accepted_order
 
         if order_status == "closed" and team_instance is not None:
-            self._close_order(instance, team_instance, order_status)
+            closed_order = OrderManager.close_order(instance, team_instance, order_status)
+            return closed_order
 
+        if instance.team != validated_data.get("team_instance", None):
+            new_team = OrderManager.change_team(instance, team_instance)
+            return new_team
+
+        instance.team = team_instance
         instance.status = order_status
         instance.save()
         return instance
@@ -157,31 +165,8 @@ class AcceptOrderSerializer(serializers.ModelSerializer):
             "status": instance.status,
         }
 
-    def _get_team(self, attrs: dict):
-        try:
-            team = attrs["team"]
-            team_instance = Team.objects.get(id=team["id"])
-            return team_instance
-        except Team.DoesNotExist:
-            raise serializers.ValidationError({"error": "Team with this Id does not exist."})
-
-    def _accept_order(self, instance: Order, team_instance, order_status):
-        instance.accepted = True
-        instance.accepted_at = timezone.now()
-        instance.team = team_instance
-        instance.status = order_status
-        team_instance.status = "unavailable"
-
-        instance.save()
-        team_instance.save()
-
-        return instance
-
-    def _close_order(self, instance: Order, team_instance, order_status):
-        instance.status = order_status
-        team_instance.status = "available"
-
-        instance.save()
-        team_instance.save()
-
-        return instance
+    def _validate_status(self, attrs: dict) -> None:
+        status = attrs["status"]
+        statuses = [OrderStatus.PENDING.value, OrderStatus.ACTIVE.value, OrderStatus.CLOSED.value]
+        if status not in statuses:
+            raise serializers.ValidationError({"status": f"Available statuses: {statuses}"})
