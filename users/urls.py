@@ -14,7 +14,7 @@ router.register("team/edit", views.UpdateTeamView, basename="update_team")
 router.register("team/info", views.TeamView, basename="team_info")
 urlpatterns = router.urls
 urlpatterns += [
-    path("login/", views.LoginView.as_view(), name="account_login"),
+    # path("login/", views.LoginView.as_view(), name="account_login"),
     path("auth/google/", GoogleLoginView.as_view(), name="google_login"),
     path(
         "auth/google/callback/",
@@ -27,4 +27,5 @@ urlpatterns += [
         name="account_confirm_email",
     ),
     path('registration/', include('dj_rest_auth.registration.urls')),
+    path("", include("dj_rest_auth.urls")),
 ]
