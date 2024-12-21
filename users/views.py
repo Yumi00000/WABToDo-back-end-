@@ -8,6 +8,7 @@ from core import permissions as c_prm
 from orders.models import Order
 from users import serializers
 from users.models import CustomUser, CustomAuthToken, Team
+from users.paginations import DashboardPagination
 
 
 class RegistrationView(generics.CreateAPIView, GenericViewSet):
@@ -43,6 +44,7 @@ class LoginView(APIView):
 class DashboardView(generics.ListAPIView, GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.DashboardSerializer
+    pagination_class = DashboardPagination
 
     def get_queryset(self):
         user = self.request.user
