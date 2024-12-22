@@ -44,6 +44,7 @@ class GetTeamTasksView(generics.ListAPIView, GenericViewSet, TaskLoggerMixin):
 
         except serializers.ValidationError as e:
             self.log_validation_error(e.detail)
+            raise
 
         except Exception as e:
             self.log_retrieve_error(request.user, str(e))
