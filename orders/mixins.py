@@ -33,7 +33,7 @@ class OrderLoggerMixin:
     def log_attempt_update(self, user: User) -> None:
         self._logger.info(self._log_messages["attempt_update"], user.username)
 
-    def log_successfully_created(self, user, request_data):
+    def log_successfully_created(self, user: User, request_data: dict) -> None:
         self._logger.info(self._log_messages["order_created"], user.username, request_data["name"])
 
     def log_successfully_updated(self, user: User, request_data: dict) -> None:
