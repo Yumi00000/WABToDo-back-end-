@@ -47,7 +47,7 @@ class OrderLoggerMixin:
         self._logger.info(self._log_messages["retrieved"], user.username, len(response_data))
 
     def log_admin_update(self, request_data: dict) -> None:
-        self._logger.info(self._log_messages["admin_update"], request_data[""])
+        self._logger.info(self._log_messages["admin_update"], request_data)
 
     # Warn logs -> ValidationError
     def log_validation_error(self, error_detail: str) -> None:
