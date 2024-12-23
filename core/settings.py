@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "channels_redis",
     "channels",
+
     "dj_rest_auth",
     "drf_spectacular",
     "allauth",
@@ -58,6 +59,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.mfa",
+    "drf_spectacular",
 ]
 
 SITE_ID = 1
@@ -173,7 +175,9 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         # "rest_framework.authentication.SessionAuthentication",
         "core.authentication.CustomJWTAuthentication",
-    ]
+    ],
+    # "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 # Logging
@@ -215,6 +219,7 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
 CELERY_TASK_BACKEND = "rpc://"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
 
 # SocialAccount configuration
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
@@ -262,7 +267,6 @@ REST_AUTH = {
     "LOGOUT_ON_PASSWORD_CHANGE": True,
     "SESSION_LOGIN": True,
 }
-
 
 # Swagger rendering config
 SPECTACULAR_SETTINGS = {

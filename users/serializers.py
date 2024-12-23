@@ -20,6 +20,7 @@ class RegistrationSerializer(RegisterSerializer):
     password2 = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     isTeamMember = serializers.BooleanField(source="is_team_member", required=False, default=False)
     isAdmin = serializers.BooleanField(source="is_admin", required=False, default=False)
+    isStaff = serializers.BooleanField(source="is_staff", required=False, default=False)
     phoneNumber = serializers.CharField(
         source="phone_number", required=False, validators=[UniqueValidator(queryset=CustomUser.objects.all())]
     )
@@ -36,6 +37,7 @@ class RegistrationSerializer(RegisterSerializer):
             "phoneNumber",
             "isTeamMember",
             "isAdmin",
+            "isStaff",
         ]
 
     def validate(self, attrs: dict):
@@ -56,6 +58,7 @@ class RegistrationSerializer(RegisterSerializer):
             phone_number=validated_data.get("phone_number", None),
             is_team_member=validated_data.get("is_team_member", False),
             is_admin=validated_data.get("is_admin", False),
+            is_staff=validated_data.get("is_staff", False),
         )
         user.set_password(validated_data["password"])
         user.save()
