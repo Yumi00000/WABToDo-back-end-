@@ -34,7 +34,6 @@ from users.models import CustomAuthToken, Team
 #         return Response({"detail": "User registered successfully!"}, status=201)
 
 
-
 ####?????####Maybe can be removed####?????####
 
 # class LoginView(APIView):
