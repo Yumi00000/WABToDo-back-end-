@@ -59,7 +59,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.mfa",
-    "drf_spectacular",
+
 ]
 
 SITE_ID = 1
@@ -210,9 +210,10 @@ LOGGING = {
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = "amqp://guest@localhost:5672//"
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+CELERY_TASK_TRACK_STARTED = True
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
@@ -255,7 +256,7 @@ EMAIL_HOST_PASSWORD = config("GMAIL_APP_PASSWORD_KEY")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
-LOGIN_URL = "/admin"
+LOGIN_URL = "api/users/login/"
 
 REST_AUTH = {
     "LOGIN_SERIALIZER": "users.serializers.CustomLoginSerializer",
