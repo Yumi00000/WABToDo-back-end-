@@ -261,3 +261,21 @@ REST_AUTH = {
     "LOGOUT_ON_PASSWORD_CHANGE": True,
     "SESSION_LOGIN": True,
 }
+
+
+# Swagger rendering config
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API Documentation",
+    "DESCRIPTION": "API Description",
+    "VERSION": "1.0.0",
+    "SECURITY": [
+        {"bearerAuth": []},
+    ],
+    "SECURITY_DEFINITIONS": {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    },
+}
