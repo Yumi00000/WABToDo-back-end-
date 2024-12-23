@@ -51,8 +51,18 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "channels_redis",
     "channels",
+
+    "dj_rest_auth",
+    "drf_spectacular",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.mfa",
     "drf_spectacular",
 ]
+
+SITE_ID = 1
 
 ASGI_APPLICATION = "websocket.asgi.application"
 
@@ -73,6 +83,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -162,7 +173,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        # "rest_framework.authentication.SessionAuthentication",
         "core.authentication.CustomJWTAuthentication",
     ],
     # "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
@@ -207,6 +218,54 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
 CELERY_TASK_BACKEND = "rpc://"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+
+# SocialAccount configuration
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+GOOGLE_OAUTH2_CLIENT_ID = config("DJANGO_GOOGLE_OAUTH2_CLIENT_ID", default="")
+GOOGLE_OAUTH2_CLIENT_SECRET = config("DJANGO_GOOGLE_OAUTH2_CLIENT_SECRET", default="")
+GOOGLE_OAUTH2_PROJECT_ID = config("DJANGO_GOOGLE_OAUTH2_PROJECT_ID", default="")
+GOOGLE_OAUTH_CALLBACK_URL = config("GOOGLE_OAUTH_CALLBACK_URL")
+SOCIAL_AUTH_GOOGLE_TOKEN_URL = config("SOCIAL_AUTH_GOOGLE_OAUTH2_TOKEN_URL")
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "FETCH_USERINFO": True,
+        "SCOPE": ["profile", "email"],
+        "APP": {
+            "client_id": GOOGLE_OAUTH2_CLIENT_ID,
+            "secret": GOOGLE_OAUTH2_CLIENT_SECRET,
+            "key": "",
+        },
+        "AUTH_PARAMS": {"access_type": "offline"},
+    },
+}
+
+ACCOUNT_AUTHENTICATION_METHOD = "email"  # Use Email / Password authentication
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = True
+
+# Email manager configuration
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("GMAIL_APP_PASSWORD_KEY")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+LOGIN_URL = "/admin"
+
+REST_AUTH = {
+    "LOGIN_SERIALIZER": "users.serializers.CustomLoginSerializer",
+    "REGISTER_SERIALIZER": "users.serializers.RegistrationSerializer",
+    "TOKEN_MODEL": "users.models.CustomAuthToken",
+    "PASSWORD_RESET_USE_SITES_DOMAIN": False,
+    "OLD_PASSWORD_FIELD_ENABLED": False,
+    "LOGOUT_ON_PASSWORD_CHANGE": True,
+    "SESSION_LOGIN": True,
+}
 
 # Swagger rendering config
 SPECTACULAR_SETTINGS = {
