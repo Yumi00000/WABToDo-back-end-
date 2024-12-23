@@ -4,7 +4,7 @@ from django.db.models import Q
 from rest_framework import serializers
 
 from orders.models import Order
-from tasks.models import Task
+from tasks.models import Task, TaskStatus
 from users.models import Team, CustomUser
 
 
@@ -23,6 +23,8 @@ class BaseTaskSerializer(serializers.ModelSerializer):
         self._validate_len_description(attrs)
         attrs["team"], attrs["order"] = self._get_team_and_order(attrs)
         self._validate_deadline(attrs)
+        if "status" in attrs:
+            self._validate_status(attrs)
 
         return attrs
 
@@ -49,6 +51,12 @@ class BaseTaskSerializer(serializers.ModelSerializer):
         deadline = attrs["deadline"]
         if deadline and deadline < date.today():
             raise serializers.ValidationError()
+
+    def _validate_status(self, attrs: dict) -> None:
+        status = attrs["status"]
+        statuses = [TaskStatus.PENDING.value, TaskStatus.ACTIVE.value, TaskStatus.CLOSED.value]
+        if status not in statuses:
+            raise serializers.ValidationError({"status": f"Available statuses: {statuses}"})
 
     def _get_user_team(self, user):
         user_team = Team.objects.filter(Q(list_of_members=user) | Q(leader=user)).distinct()
@@ -110,15 +118,20 @@ class EditTaskSerializer(BaseTaskSerializer):
             attrs["team"], attrs["order"] = self._get_team_and_order(attrs)
         if "deadline" in attrs:
             self._validate_deadline(attrs)
+        if "status" in attrs:
+            self._validate_status(attrs)
 
         return attrs
 
     def update(self, instance: Task, validated_data: dict) -> Task:
+        if "executor" in validated_data:
+            user = CustomUser.objects.get(id=validated_data["executor"])
+            instance.executor = user
+
         instance.title = validated_data.get("title", instance.title)
         instance.description = validated_data.get("description", instance.description)
-        user = CustomUser.objects.get(id=validated_data["executor"])
-        instance.executor = user if user else instance.executor
         instance.deadline = validated_data.get("deadline", instance.deadline)
+        instance.status = validated_data.get("status", instance.status)
 
         instance.save()
         return instance

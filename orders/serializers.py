@@ -75,6 +75,27 @@ class UpdateOrderSerializer(OrderSerializer):
     description = serializers.CharField(required=False)
     deadline = serializers.DateField(required=False)
 
+    def update(self, instance: Order, validated_data):
+        instance.name = validated_data.get("name", instance.name)
+        instance.description = validated_data.get("description", instance.description)
+        instance.deadline = validated_data.get("deadline", instance.deadline)
+        instance.updated_at = timezone.now()
+        instance.save()
+
+        return instance
+
+    def to_representation(self, instance: Order):
+        updated_at = change_date_format(instance.updated_at)
+
+        return {
+            "id": instance.id,
+            "name": instance.name,
+            "description": instance.description,
+            "deadline": instance.deadline,
+            "updatedAt": updated_at,
+            "status": instance.status,
+        }
+
 
 class UnacceptedOrderSerializer(OrderSerializer):
     def to_representation(self, instance: Order):
@@ -121,7 +142,6 @@ class AcceptOrderSerializer(serializers.ModelSerializer):
     def update(self, instance: Order, validated_data):
         is_accepted = validated_data.get("accepted", False)
         status = validated_data.get("status", None)
-        print(status)
         team = validated_data.get("team", None)
         team_instance = Team.objects.get(id=team["id"])
 
