@@ -49,15 +49,15 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "django_extensions",
     "django_celery_beat",
+    "channels_redis",
+    "channels",
+    "dj_rest_auth",
+    "drf_spectacular",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.mfa",
-    "channels_redis",
-    "channels",
-    "dj_rest_auth",
-    "drf_spectacular",
 ]
 
 SITE_ID = 1
