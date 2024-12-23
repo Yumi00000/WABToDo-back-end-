@@ -6,7 +6,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.utils import timezone
 
 from core.tasks import send_email
-from users.models import CustomUser, Participant, CustomAuthToken
+from users.models import CustomUser, Participant, CustomAuthToken, Chat
 from websocket.models import Comment, Notification, Message
 from websocket.serializers import (
     CommentSerializer,
@@ -43,10 +43,10 @@ def get_username(user_pk):
     return db_response
 
 
-# @sync_to_async
-# def get_chat_participants_rec(chat_id, sender_id):
-#     participants = Participant.objects.filter(chat_id=chat_id).exclude(user_id=sender_id)
-#     return list(participants)
+@sync_to_async
+def get_recipients_emails(recipients_pk):
+    emails = [CustomUser.objects.get(id=recipient_pk).email for recipient_pk in recipients_pk]
+    return emails
 
 
 class CommentConsumer(BaseAsyncWebsocketConsumer):
@@ -239,11 +239,23 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(error_response))
 
     async def send_notification(self, event):
-        await self.send(
-            text_data=json.dumps(
-                event,
+        try:
+            recipient_emails = await get_recipients_emails(event["recipient_list"])
+            print(recipient_emails)
+            send_email.delay(
+                subject=event["subject"],
+                message=event["content"]["content"],
+                to_email=recipient_emails,
             )
-        )
+            await self.send(text_data=json.dumps({"message": "Notification sent successfully"}))
+
+        except Exception as e:
+            # Handle any errors gracefully
+            error_message = {
+                "type": "error",
+                "errors": {"notification": str(e)},
+            }
+            await self.send(text_data=json.dumps(error_message))
 
 
 class MessageConsumer(BaseAsyncWebsocketConsumer):
@@ -274,10 +286,9 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
         validated_data = serializer.validated_data
         headers_dict = {key.decode("utf-8"): value.decode("utf-8") for key, value in self.headers}
         chat_id = validated_data["chat_id"]
-        auth_token = await sync_to_async(CustomAuthToken.objects.get)(key=headers_dict.get("token"))
+        auth_token = await sync_to_async(CustomAuthToken.objects.get)(key=headers_dict.get("authorization"))
         sender_id = auth_token.user_id
         content = validated_data["content"]
-
         chat_participants = await sync_to_async(
             lambda: list(Participant.objects.filter(chat_id=chat_id).values_list("user_id", flat=True))
         )()
@@ -304,14 +315,17 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
         recipient_ids = chat_participants
         # Increment message count for sender
         msg_counter = await sync_to_async(Message.objects.filter(chat_id=chat_id, sender_id=sender_id).count)()
-
+        chat_name = await sync_to_async(Chat.objects.get)(id=chat_id)
         # Send notification to the `notifications_room`
         notify_content = {
-            "content": f"You've received {msg_counter} messages!",
+            "content": f"You've received {msg_counter} messages in chat: {chat_name}!",
         }
+
         for recipient_id in recipient_ids:
             notification_event = {
                 "type": "send_notification",
+                "subject": f"You've received new message in chat: {chat_name}",
+                "recipient_list": recipient_ids,
                 "user_id": recipient_id,
                 "content": notify_content,
             }
