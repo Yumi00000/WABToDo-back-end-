@@ -59,7 +59,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.mfa",
-    "drf_spectacular",
+
 ]
 
 SITE_ID = 1
