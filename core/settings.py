@@ -54,9 +54,10 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.mfa",
-    # "channels_redis",
+    "channels_redis",
     "channels",
     "dj_rest_auth",
+    "drf_spectacular",
 ]
 
 SITE_ID = 1
@@ -239,7 +240,6 @@ ACCOUNT_AUTHENTICATION_METHOD = "email"  # Use Email / Password authentication
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
 
-
 # Email manager configuration
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
@@ -251,7 +251,6 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 LOGIN_URL = "/admin"
-
 
 REST_AUTH = {
     "LOGIN_SERIALIZER": "users.serializers.CustomLoginSerializer",
