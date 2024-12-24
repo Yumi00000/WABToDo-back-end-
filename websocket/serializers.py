@@ -37,12 +37,11 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     chat_id = serializers.IntegerField(write_only=True)
-    sender_id = serializers.IntegerField(write_only=True)
     content = serializers.JSONField()
 
     class Meta:
         model = Message
-        fields = ["chat_id", "sender_id", "content", "created_at"]
+        fields = ["chat_id", "content", "created_at"]
         read_only_fields = ["created_at"]
 
 
