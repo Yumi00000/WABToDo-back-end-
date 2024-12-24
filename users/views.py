@@ -100,9 +100,11 @@ class TeamsCreateView(generics.CreateAPIView, GenericViewSet, TeamLoggerMixin):
         self.log_attempt_create_team()
 
         try:
-            response = super().create(request, *args, **kwargs)
-            self.log_successfully_created()
-            return response
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            team_data = serializer.save()  # This returns serialized data
+            print(f"Response Data: {team_data}")  # Debug: Check the response
+            return Response(team_data, status=status.HTTP_201_CREATED)
 
         except serializers.ValidationError as e:
             self.log_validation_error(e.detail)
@@ -123,9 +125,12 @@ class UpdateTeamView(generics.UpdateAPIView, GenericViewSet, TeamLoggerMixin):
         self.log_attempt_update_team()
 
         try:
-            response = super().update(request, *args, **kwargs)
-            self.log_successfully_updated()
-            return response
+            partial = kwargs.pop("partial", False)
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            updated_instance = serializer.save()
+            return Response(updated_instance)
 
         except serializers.ValidationError as e:
             self.log_validation_error(e.detail)
