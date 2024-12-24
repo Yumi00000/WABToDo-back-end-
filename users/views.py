@@ -1,4 +1,3 @@
-import json
 from urllib.parse import urljoin
 
 import requests
@@ -16,18 +15,20 @@ from core import permissions as c_prm, settings
 from orders.models import Order
 from users import serializers as user_serializers
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
-from users.models import CustomUser, CustomAuthToken, Team
+from users.models import CustomAuthToken, Team
 from users.paginations import DashboardPagination
+
 
 class GoogleLoginView(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
     callback_url = settings.GOOGLE_OAUTH_CALLBACK_URL
     client_class = OAuth2Client
 
+
 class GoogleLoginCallback(APIView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
-        
+
         if code is None:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
