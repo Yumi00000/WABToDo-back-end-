@@ -102,3 +102,4 @@ wheel==0.45.0
 yarl==1.17.1
 zope.event==5.0
 zope.interface==7.2
+drf-spectacular==0.28.0
