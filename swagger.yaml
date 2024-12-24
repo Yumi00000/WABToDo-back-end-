@@ -25,7 +25,7 @@ paths:
                   type: string
                 phoneNumber:
                   type: string
-                password:
+                password1:
                   type: string
                 password2:
                   type: string
@@ -39,7 +39,7 @@ paths:
                 - firstName
                 - lastName
                 - email
-                - password
+                - password1
                 - password2
 
               example:
@@ -49,7 +49,7 @@ paths:
                   lastName: NotUser,
                   email: theuseremail@gmail.com,
                   phoneNumber: "+1234567890",
-                  password: userpassword,
+                  password1: userpassword,
                   password2: userpassword,
                 }
 
@@ -529,25 +529,15 @@ paths:
             schema:
               type: object
               properties:
-                leader:
-                  type: integer
-                  description: User ID of the team leader
                 list_of_members:
                   type: array
                   items:
                     type: integer
                   description: List of user IDs to be added to the team
-                status:
-                  type: string
-                  default: available
-                  description: Status of the team
               required:
-                - leader
                 - list_of_members
             example:
-              leader: 1
               list_of_members: [ 2, 3, 4 ]
-              status: available
 
       responses:
         '201':
@@ -563,22 +553,14 @@ paths:
                   leader:
                     type: object
                     properties:
-                      id:
-                        type: integer
                       firstName:
-                        type: string
-                      lastName:
                         type: string
                   list_of_members:
                     type: array
                     items:
                       type: object
                       properties:
-                        id:
-                          type: integer
                         firstName:
-                          type: string
-                        lastName:
                           type: string
                   status:
                     type: string
@@ -586,19 +568,11 @@ paths:
               example:
                 team_id: 12
                 leader:
-                  id: 1
                   firstName: "John"
-                  lastName: "Doe"
                 list_of_members:
-                  - id: 2
-                    firstName: "Alice"
-                    lastName: "Smith"
-                  - id: 3
-                    firstName: "Bob"
-                    lastName: "Johnson"
-                  - id: 4
-                    firstName: "Eve"
-                    lastName: "Davis"
+                  [ firstName: "Alice",
+                    firstName: "Bob",
+                    firstName: "Eve" ]
                 status: available
 
         '400':
@@ -687,16 +661,10 @@ paths:
               example:
                 team_id: 12
                 leader:
-                  id: 1
                   firstName: "John"
-                  lastName: "Doe"
                 list_of_members:
-                  - id: 2
-                    firstName: "Alice"
-                    lastName: "Smith"
-                  - id: 3
-                    firstName: "Bob"
-                    lastName: "Johnson"
+                  [ firstName: "Alice",
+                    firstName: "Bob" ]
                 status: unavailable
 
         '400':

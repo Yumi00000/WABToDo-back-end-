@@ -120,28 +120,36 @@ class TeamSerializer(serializers.ModelSerializer):
         fields = ["leader", "status", "list_of_members"]
 
     def get_list_of_members(self, obj: Team):
-        return [member.username for member in obj.list_of_members.all()]
+        members = [member.username for member in obj.list_of_members.all()]
+        return members
 
 
-class CreateTeamSerializer(TeamSerializer):
+class CreateTeamSerializer(serializers.ModelSerializer):
     list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True)
 
     class Meta:
         model = Team
-        fields = ["status", "list_of_members"]
+        fields = ["list_of_members", "status"]
 
     def create(self, validated_data):
         leader = self.context["request"].user
         list_of_members = validated_data.pop("list_of_members", [])
 
+        # Create the team
         team = Team.objects.create(leader=leader, status=validated_data.get("status", "available"))
+
+        # Set members
         members = CustomUser.objects.filter(id__in=list_of_members)
         team.list_of_members.set(members)
-        team.list_of_members.add(self.context["request"].user)
+        team.list_of_members.add(leader)  # Add leader
         CustomUser.objects.filter(id__in=list_of_members).update(is_team_member=True)
-        team.save()
 
-        return team
+        # Save and refresh team object
+        team.save()
+        team.refresh_from_db()  # Ensure related fields are loaded
+
+        # Serialize team and return response
+        return TeamSerializer(team).data
 
 
 class UpdateTeamSerializer(TeamSerializer):
@@ -154,6 +162,11 @@ class UpdateTeamSerializer(TeamSerializer):
         fields = ["leader_id", "status", "list_of_members"]
 
     def validate(self, attrs: dict) -> dict:
+        if not attrs.get("leader_id"):
+            raise serializers.ValidationError("Team leader id is required.")
+        if not attrs.get("list_of_members"):
+            raise serializers.ValidationError("Team members list is required.")
+
         if attrs["leader_id"] not in attrs["list_of_members"]:
             raise serializers.ValidationError({"leader_id": f"You cannot remove this member: {attrs['leader_id']}"})
         return attrs
@@ -180,4 +193,5 @@ class UpdateTeamSerializer(TeamSerializer):
 
         instance.save()
 
-        return instance
+        # Serialize the updated instance before returning
+        return TeamSerializer(instance).data
