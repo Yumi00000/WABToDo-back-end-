@@ -1,4 +1,4 @@
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlencode
 
 import requests
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
@@ -15,8 +15,36 @@ from core import permissions as c_prm, settings
 from orders.models import Order
 from users import serializers as user_serializers
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
-from users.models import CustomAuthToken, Team
+from users.models import CustomAuthToken, Team, CustomUser
 from users.paginations import DashboardPagination
+
+
+class RegistrationView(generics.CreateAPIView, GenericViewSet):
+    queryset = CustomUser.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = user_serializers.RegistrationSerializer
+
+
+class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = user_serializers.LoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
+
+        serializer = self.serializer_class(data={**request.data, "user_agent": user_agent})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user = serializer.validated_data["user"]
+        token, created = CustomAuthToken.objects.get_or_create(
+            user=user,
+            user_agent=user_agent,
+        )
+        if token and token.is_valid():
+            return Response({"token": token.key}, status=status.HTTP_200_OK)
+
+        return Response({"token": token.key}, status=status.HTTP_201_CREATED)
 
 
 class GoogleLoginView(SocialLoginView):
@@ -33,7 +61,14 @@ class GoogleLoginCallback(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # Exchange code for access token
-        token_url = f"{settings.SOCIAL_AUTH_GOOGLE_TOKEN_URL}?code={code}&client_id={settings.GOOGLE_OAUTH2_CLIENT_ID}&client_secret={settings.GOOGLE_OAUTH2_CLIENT_SECRET}&redirect_uri={settings.GOOGLE_OAUTH_CALLBACK_URL}&grant_type=authorization_code"
+        auth_url_params = {
+            "code": code,
+            "client_id": settings.GOOGLE_OAUTH2_CLIENT_ID,
+            "client_secret": settings.GOOGLE_OAUTH2_CLIENT_SECRET,
+            "redirect_uri": settings.GOOGLE_OAUTH_CALLBACK_URL,
+            "grant_type": "authorization_code",
+        }
+        token_url = f"{settings.SOCIAL_AUTH_GOOGLE_TOKEN_URL}?{urlencode(auth_url_params)}"
 
         response = requests.post(token_url)
         ensured_data_url = urljoin("http://localhost:8000", reverse("google_login"))

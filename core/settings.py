@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "django_extensions",
     "django_celery_beat",
-    "channels_redis",
+    # "channels_redis",
     "channels",
     "dj_rest_auth",
     "drf_spectacular",
@@ -64,14 +64,14 @@ SITE_ID = 1
 
 ASGI_APPLICATION = "websocket.asgi.application"
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("0.0.0.0", 6379)],
-        },
-    },
-}
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [("0.0.0.0", 6379)],
+#         },
+#     },
+# }
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -129,7 +129,6 @@ if os.getenv("DOCKERIZED", False):
             "PORT": "5432",
         }
     }
-
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 AUTH_USER_MODEL = "users.CustomUser"
@@ -146,6 +145,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
+]
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",  # For old passwords
 ]
 
 # Internationalization
@@ -217,7 +221,6 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
 CELERY_TASK_BACKEND = "rpc://"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-
 
 # SocialAccount configuration
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
