@@ -9,7 +9,7 @@ from rest_framework.validators import UniqueValidator
 from orders.models import Order
 from orders.serializers import OrderSerializer
 from orders.utils import change_date_format
-from users.models import CustomUser, Team
+from users.models import CustomUser, Team, Chat, Participant
 
 
 class RegistrationSerializer(RegisterSerializer):
@@ -195,3 +195,52 @@ class UpdateTeamSerializer(TeamSerializer):
 
         # Serialize the updated instance before returning
         return TeamSerializer(instance).data
+
+
+class CreateChatSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(required=True)
+    is_group = serializers.BooleanField(default=False)
+    chat_id = serializers.IntegerField(required=False)
+    participants = serializers.JSONField()
+
+    class Meta:
+        model = Chat
+        fields = ["name", "chat_id", "is_group", "participants"]
+        read_only_fields = ["created_at"]
+
+    def validate(self, attrs: dict) -> dict:
+        if attrs.get("is_group") == False and len(attrs.get("participants", [])) > 1:
+            raise serializers.ValidationError("You can't add more than one participant to your chat.")
+        return attrs
+
+    def create(self, validated_data):
+        participants = validated_data.pop("participants")
+        participants.append(self.context["request"].user.id)  # Add the requesting user as a participant
+
+        # Create the chat
+        chat = Chat.objects.create(**validated_data)
+        chat.save()
+
+        # Create participants
+        participant_objects = [
+            Participant(chat=chat, user_id=participant_id) for participant_id in participants
+        ]
+        Participant.objects.bulk_create(participant_objects)  # Efficiently create all participants
+
+        # Prepare response
+        response = {
+            "name": chat.name,
+            "chat_id": chat.id,
+            "is_group": chat.is_group,
+            "participants": list(
+                chat.participants.values("id", "user_id")  # Assuming `participants` is a related name
+            ),
+        }
+
+        return response
+
+
+class InputSerializer(serializers.Serializer):
+    code = serializers.CharField(required=False)
+    error = serializers.CharField(required=False)
+    state = serializers.CharField(required=False)
