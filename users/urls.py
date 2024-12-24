@@ -12,6 +12,7 @@ router.register("teams", views.TeamsListView, basename="teams")
 router.register("team/create", views.TeamsCreateView, basename="create_team")
 router.register("team/edit", views.UpdateTeamView, basename="update_team")
 router.register("team/info", views.TeamView, basename="team_info")
+router.register("chat/create", views.CreateChatView, basename="create_chat")
 urlpatterns = router.urls
 urlpatterns += [
     # path("login/", views.LoginView.as_view(), name="account_login"),

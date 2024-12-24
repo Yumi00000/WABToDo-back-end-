@@ -68,6 +68,7 @@ class Team(models.Model):
 class Participant(models.Model):
     chat = models.ForeignKey("Chat", on_delete=models.CASCADE, related_name="participants")
     user = models.ForeignKey("users.CustomUser", on_delete=models.CASCADE, related_name="participants")
+    role = models.CharField(max_length=11, default="user")
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

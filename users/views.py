@@ -1,4 +1,3 @@
-import json
 from urllib.parse import urljoin
 
 import requests
@@ -15,7 +14,7 @@ from rest_framework.viewsets import GenericViewSet
 from core import permissions as c_prm, settings
 from orders.models import Order
 from users import serializers
-from users.models import CustomAuthToken, Team, CustomUser
+from users.models import CustomAuthToken, Team, Chat
 
 
 class GoogleLoginView(SocialLoginView):
@@ -99,3 +98,9 @@ class TeamView(generics.RetrieveAPIView, GenericViewSet):
     def get_queryset(self):
         team_id = self.kwargs["pk"]
         return Team.objects.filter(pk=team_id).all()
+
+
+class CreateChatView(generics.CreateAPIView, GenericViewSet):
+    queryset = Chat.objects.all()
+    permission_classes = [permissions.IsAuthenticated,]
+    serializer_class = serializers.CreateChatSerializer
