@@ -260,68 +260,51 @@ class UpdateChatSerializer(serializers.ModelSerializer):
         fields = ["name", "is_group", "chat_id", "participants"]
 
     def update(self, instance, validated_data):
-        action = self.context["request"].data.get("action")
+        request = self.context["request"]
+        action = request.data.get("action")
 
         if action == "update":
-            # Safely access the 'name' attribute
             instance.name = validated_data.get("name", instance.name)
-            print(instance.name)
-            new_participants = validated_data.pop("new_participants", [])
-            current_participants = Participant.objects.filter(chat=instance, user=self.context["request"].user)
-            current_participants_ids = {participant.id for participant in current_participants}
-            if new_participants and instance.is_group:
-                participants_instance = current_participants.first()
-                participants_to_add = set(new_participants) - current_participants_ids
-                participants_to_remove = current_participants_ids - set(new_participants)
+            if instance.is_group:
+                new_participants = validated_data.get("participants", [])
+                if new_participants:
+                    current_participants = Participant.objects.filter(chat=instance)
+                    current_participant_ids = {participant.user.id for participant in current_participants}
 
-                if participants_to_remove or participants_to_add:
-                    updated_participants = CustomUser.objects.filter(id__in=new_participants)
-                    participants_instance.user.participants.set(updated_participants)
+                    new_participant_ids = set(new_participants)
+                    participants_to_add = new_participant_ids - current_participant_ids
+                    participants_to_remove = current_participant_ids - new_participant_ids
+
+                    if participants_to_add:
+                        users_to_add = CustomUser.objects.filter(id__in=participants_to_add)
+                        Participant.objects.bulk_create(
+                            [Participant(chat=instance, user=user) for user in users_to_add]
+                        )
+
+
+                    if participants_to_remove:
+                        Participant.objects.filter(chat=instance, user_id__in=participants_to_remove).delete()
 
             instance.save()
 
-            updated_chat_data = {
+            return {
                 "id": instance.id,
                 "name": instance.name,
                 "is_group": instance.is_group,
-                "participants": list(instance.participants.values("id", "user_id")),  # Using values() for serialization
+                "participants": list(
+                    Participant.objects.filter(chat=instance).values("user__id", "user__username")
+                ),
             }
-
-            return updated_chat_data
 
         elif action == "delete":
             instance.delete()
-            return "Chat successfully Deleted."
+            return {"detail": "Chat successfully deleted."}
 
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        # If action is invalid
+        raise serializers.ValidationError({"detail": "Invalid action provided."})
 
 
 class InputSerializer(serializers.Serializer):
     code = serializers.CharField(required=False)
     error = serializers.CharField(required=False)
     state = serializers.CharField(required=False)
-
-# class GetChatListSerializer(serializers.Serializer):
-#     name = serializers.CharField(required=False)
-#     is_group = serializers.BooleanField(default=False)
-#     chat_id = serializers.IntegerField(required=False)
-#     participants = serializers.SerializerMethodField()
-#
-#     class Meta:
-#         model = Participant
-#         fields = ["name", "is_group", "chat_id", "participants"]
-#
-#     def get_participants(self, obj):
-#         participants = obj.chat.participants.all()  # Access participants through the chat relation
-#         return [{"id": participant.user.id, "username": participant.user.username} for participant in participants]
-#
-#     def get_chat_fields(self):
-#         chat_ids = [
-#             chat.id
-#             for chat in Participant.objects.filter(participant_id=self.context.get("participant_id")).values_list(
-#                 "chat", flat=True
-#             )
-#         ]
-#         chats = Chat.objects.filter(id__in=chat_ids)
-#         chat_data = [{"name": chat.name, "is_group": chat.is_group, "chat_id": chat.id} for chat in chats]
-#         return chat_data

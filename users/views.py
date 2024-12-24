@@ -147,7 +147,7 @@ class CreateChatView(generics.CreateAPIView, GenericViewSet):
 class EditChatView(generics.UpdateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
     permission_classes = [
-        permissions.IsAuthenticated,
+        c_prm.IsChatAdmin,
     ]
     serializer_class = user_serializers.UpdateChatSerializer
 
@@ -155,7 +155,7 @@ class EditChatView(generics.UpdateAPIView, GenericViewSet):
 class ChatView(generics.RetrieveAPIView, GenericViewSet):
     queryset = Chat.objects.all()
     permission_classes = [
-        permissions.IsAuthenticated,
+        c_prm.IsChatParticipant
     ]
     serializer_class = user_serializers.ChatSerializer
 
