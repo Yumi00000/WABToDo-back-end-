@@ -2,6 +2,7 @@ from core.settings import DEFAULT_FROM_EMAIL
 from celery import shared_task
 from django.core.mail.message import EmailMultiAlternatives
 
+
 @shared_task
 def send_email(subject, message, to_email, **kwargs):
     print("send_email task called")

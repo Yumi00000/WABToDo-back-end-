@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "channels_redis",
     "channels",
-
     "dj_rest_auth",
     "drf_spectacular",
     "allauth",
@@ -59,7 +58,6 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.mfa",
-
 ]
 
 SITE_ID = 1
@@ -210,7 +208,7 @@ LOGGING = {
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = "redis://localhost:6379/0"
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_TRACK_STARTED = True

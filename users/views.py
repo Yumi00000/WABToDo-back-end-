@@ -1,4 +1,4 @@
-import logging
+import json
 from urllib.parse import urljoin
 
 import requests
@@ -15,7 +15,7 @@ from rest_framework.viewsets import GenericViewSet
 from core import permissions as c_prm, settings
 from orders.models import Order
 from users import serializers
-from users.models import CustomAuthToken, Team
+from users.models import CustomAuthToken, Team, CustomUser
 
 
 class GoogleLoginView(SocialLoginView):
@@ -36,7 +36,6 @@ class GoogleLoginCallback(APIView):
 
         response = requests.post(token_url)
         ensured_data_url = urljoin("http://localhost:8000", reverse("google_login"))
-
 
         response_login = requests.post(ensured_data_url, data={"access_token": response.json()["access_token"]})
 
@@ -70,14 +69,26 @@ class TeamsCreateView(generics.CreateAPIView, GenericViewSet):
     permission_classes = [c_prm.IsAdminOrStaff]
     serializer_class = serializers.CreateTeamSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(leader=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        team_data = serializer.save()  # This returns serialized data
+        print(f"Response Data: {team_data}")  # Debug: Check the response
+        return Response(team_data, status=status.HTTP_201_CREATED)
 
 
 class UpdateTeamView(generics.UpdateAPIView, GenericViewSet):
     queryset = Team.objects.all()
     permission_classes = [c_prm.IsAdminOrStaff, c_prm.IsTeamMemberOrAdmin]
     serializer_class = serializers.UpdateTeamSerializer
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        updated_instance = serializer.save()
+        return Response(updated_instance)
 
 
 class TeamView(generics.RetrieveAPIView, GenericViewSet):
