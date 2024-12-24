@@ -3,7 +3,8 @@ from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.response import Response
 from rest_framework.validators import UniqueValidator
 
 from orders.models import Order
@@ -197,17 +198,24 @@ class UpdateTeamSerializer(TeamSerializer):
         return TeamSerializer(instance).data
 
 
-class CreateChatSerializer(serializers.ModelSerializer):
+class ChatSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)
     is_group = serializers.BooleanField(default=False)
     chat_id = serializers.IntegerField(required=False)
-    participants = serializers.JSONField()
+    participants = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
         fields = ["name", "chat_id", "is_group", "participants"]
         read_only_fields = ["created_at"]
 
+    def get_participants(self, obj):
+        participants = obj.participants.all()  # Access participants through the related Manager
+        # Serialize the related objects into a list of dictionaries
+        return [{"id": participant.user.id, "username": participant.user.username} for participant in participants]
+
+
+class CreateChatSerializer(ChatSerializer):
     def validate(self, attrs: dict) -> dict:
         if attrs.get("is_group") == False and len(attrs.get("participants", [])) > 1:
             raise serializers.ValidationError("You can't add more than one participant to your chat.")
@@ -222,11 +230,12 @@ class CreateChatSerializer(serializers.ModelSerializer):
         chat.save()
 
         # Create participants
-        participant_objects = [
-            Participant(chat=chat, user_id=participant_id) for participant_id in participants
-        ]
+        participant_objects = [Participant(chat=chat, user_id=participant_id) for participant_id in participants]
         Participant.objects.bulk_create(participant_objects)  # Efficiently create all participants
 
+        owner = Participant.objects.get(chat=chat, user=self.context["request"].user)
+        owner.role = "admin"
+        owner.save()
         # Prepare response
         response = {
             "name": chat.name,
@@ -240,7 +249,79 @@ class CreateChatSerializer(serializers.ModelSerializer):
         return response
 
 
+class UpdateChatSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(required=False)
+    is_group = serializers.BooleanField(default=False)
+    chat_id = serializers.IntegerField(required=False)
+    participants = serializers.JSONField(required=False)
+
+    class Meta:
+        model = Chat
+        fields = ["name", "is_group", "chat_id", "participants"]
+
+    def update(self, instance, validated_data):
+        action = self.context["request"].data.get("action")
+
+        if action == "update":
+            # Safely access the 'name' attribute
+            instance.name = validated_data.get("name", instance.name)
+            print(instance.name)
+            new_participants = validated_data.pop("new_participants", [])
+            current_participants = Participant.objects.filter(chat=instance, user=self.context["request"].user)
+            current_participants_ids = {participant.id for participant in current_participants}
+            if new_participants and instance.is_group:
+                participants_instance = current_participants.first()
+                participants_to_add = set(new_participants) - current_participants_ids
+                participants_to_remove = current_participants_ids - set(new_participants)
+
+                if participants_to_remove or participants_to_add:
+                    updated_participants = CustomUser.objects.filter(id__in=new_participants)
+                    participants_instance.user.participants.set(updated_participants)
+
+            instance.save()
+
+            updated_chat_data = {
+                "id": instance.id,
+                "name": instance.name,
+                "is_group": instance.is_group,
+                "participants": list(instance.participants.values("id", "user_id")),  # Using values() for serialization
+            }
+
+            return updated_chat_data
+
+        elif action == "delete":
+            instance.delete()
+            return "Chat successfully Deleted."
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
 class InputSerializer(serializers.Serializer):
     code = serializers.CharField(required=False)
     error = serializers.CharField(required=False)
     state = serializers.CharField(required=False)
+
+# class GetChatListSerializer(serializers.Serializer):
+#     name = serializers.CharField(required=False)
+#     is_group = serializers.BooleanField(default=False)
+#     chat_id = serializers.IntegerField(required=False)
+#     participants = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = Participant
+#         fields = ["name", "is_group", "chat_id", "participants"]
+#
+#     def get_participants(self, obj):
+#         participants = obj.chat.participants.all()  # Access participants through the chat relation
+#         return [{"id": participant.user.id, "username": participant.user.username} for participant in participants]
+#
+#     def get_chat_fields(self):
+#         chat_ids = [
+#             chat.id
+#             for chat in Participant.objects.filter(participant_id=self.context.get("participant_id")).values_list(
+#                 "chat", flat=True
+#             )
+#         ]
+#         chats = Chat.objects.filter(id__in=chat_ids)
+#         chat_data = [{"name": chat.name, "is_group": chat.is_group, "chat_id": chat.id} for chat in chats]
+#         return chat_data

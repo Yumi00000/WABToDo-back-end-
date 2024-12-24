@@ -3,6 +3,7 @@ from typing import Dict
 import jwt
 from attrs import define
 
+
 @define
 class GoogleAccessTokens:
     id_token: str

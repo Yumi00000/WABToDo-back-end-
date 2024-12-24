@@ -122,7 +122,7 @@ if os.getenv("DOCKERIZED", False):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql_psycopg2",
-            "NAME": os.getenv("POSTGRES_DB", "mock-db"),
+            "NAME": os.getenv("POSTGRES_DB"),
             "USER": "postgres",
             "PASSWORD": config("POSTGRES_PASSWORD"),
             "HOST": "db",

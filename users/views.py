@@ -1,13 +1,4 @@
-
 from django.contrib.auth import login
-
-from urllib.parse import urljoin
-
-import requests
-from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-from dj_rest_auth.registration.views import SocialLoginView
-
 from django.db.models import Q
 from rest_framework import generics, permissions, status, serializers
 from rest_framework.response import Response
@@ -17,14 +8,12 @@ from rest_framework.viewsets import GenericViewSet
 from core import permissions as c_prm
 from core.service import GoogleRawLoginFlowService
 from orders.models import Order
-
 from users import serializers
-from users.models import CustomAuthToken, Team, Chat, CustomUser
 from users import serializers as user_serializers
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
+from users.models import Chat, CustomUser, Participant
 from users.models import CustomAuthToken, Team
 from users.paginations import DashboardPagination
-
 
 
 class DashboardView(generics.ListAPIView, GenericViewSet, UserLoggerMixin):
@@ -133,16 +122,69 @@ class TeamView(generics.RetrieveAPIView, GenericViewSet, TeamLoggerMixin):
         team_id = self.kwargs["pk"]
         return Team.objects.filter(pk=team_id).all()
 
+    def get(self, request, *args, **kwargs):
+        self.log_attempt_retrieve_team_details()
+
+        try:
+            response = super().get(request, *args, **kwargs)
+            self.log_successful_retrieve_team_details()
+            return response
+
+        except Exception as e:
+            self.logg_error_retrieving_details(str(e))
+            response_error_message = {"error": "An error occurred while retrieving the team details"}
+            return Response(response_error_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CreateChatView(generics.CreateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [permissions.IsAuthenticated, ]
-    serializer_class = serializers.CreateChatSerializer
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+    serializer_class = user_serializers.CreateChatSerializer
+
+
+class EditChatView(generics.UpdateAPIView, GenericViewSet):
+    queryset = Chat.objects.all()
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+    serializer_class = user_serializers.UpdateChatSerializer
+
+
+class ChatView(generics.RetrieveAPIView, GenericViewSet):
+    queryset = Chat.objects.all()
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+    serializer_class = user_serializers.ChatSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            response = super().get(request, *args, **kwargs)
+            return response.data
+
+        except Exception as e:
+            response_error_message = {"error": "An error occurred while retrieving the chat details"}
+            return Response(response_error_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ChatListView(generics.ListAPIView, GenericViewSet):
+    queryset = Chat.objects.all()
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+    serializer_class = user_serializers.ChatSerializer
+
+    def get_queryset(self):
+        user_id = self.request.user.id
+        # Filter chats by participants through the related name 'participants'
+        chat_ids = Participant.objects.filter(user_id=user_id).values_list('chat_id', flat=True)
+        return Chat.objects.filter(id__in=chat_ids)
 
 
 class GoogleLoginApi(APIView):
-    serializer_class = serializers.InputSerializer
+    serializer_class = user_serializers.InputSerializer
 
     def get(self, request, *args, **kwargs):
         input_serializer = self.serializer_class(data=request.GET)
@@ -155,32 +197,20 @@ class GoogleLoginApi(APIView):
         state = validated_data.get("state")
 
         if error is not None:
-            return Response(
-                {"error": error},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
         if code is None or state is None:
-            return Response(
-                {"error": "Code and state are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Code and state are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         session_state = request.session.get("google_oauth2_state")
 
         if session_state is None:
-            return Response(
-                {"error": "CSRF check failed."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "CSRF check failed."}, status=status.HTTP_400_BAD_REQUEST)
 
         del request.session["google_oauth2_state"]
 
         if state != session_state:
-            return Response(
-                {"error": "CSRF check failed."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "CSRF check failed."}, status=status.HTTP_400_BAD_REQUEST)
 
         google_login_flow = GoogleRawLoginFlowService()
 
@@ -193,15 +223,12 @@ class GoogleLoginApi(APIView):
 
         user, created = CustomUser.objects.get_or_create(
             email=user_email,
-            defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")}
+            defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")},
         )
 
         CustomAuthToken.objects.create(user=user)
         if user is None:
-            return Response(
-                {"error": f"User with email {user_email} is not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": f"User with email {user_email} is not found."}, status=status.HTTP_404_NOT_FOUND)
 
         login(request, user)
 
@@ -211,16 +238,3 @@ class GoogleLoginApi(APIView):
         }
 
         return Response(result)
-
-#     def get(self, request, *args, **kwargs):
-#         self.log_attempt_retrieve_team_details()
-
-#         try:
-#             response = super().get(request, *args, **kwargs)
-#             self.log_successful_retrieve_team_details()
-#             return response
-
-#         except Exception as e:
-#             self.logg_error_retrieving_details(str(e))
-#             response_error_message = {"error": "An error occurred while retrieving the team details"}
-#             return Response(response_error_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
