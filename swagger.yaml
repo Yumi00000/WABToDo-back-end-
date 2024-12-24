@@ -411,8 +411,7 @@ paths:
                   default: active
                   enum: [ active, closed ]
               required:
-                - accepted
-                - team
+                - status
               example:
                 accepted: true
                 team: 1
