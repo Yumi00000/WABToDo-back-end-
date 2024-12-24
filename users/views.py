@@ -177,7 +177,9 @@ class ChatListView(generics.ListAPIView, GenericViewSet):
     serializer_class = user_serializers.ChatSerializer
 
     def get_queryset(self):
-        user_id = self.request.user.id
+        headers = self.request.META.get("HTTP_AUTHORIZATION")
+        token = headers.split("Bearer ")[1]
+        user_id = CustomAuthToken.objects.get(key=token).user_id
         # Filter chats by participants through the related name 'participants'
         chat_ids = Participant.objects.filter(user_id=user_id).values_list('chat_id', flat=True)
         return Chat.objects.filter(id__in=chat_ids)
