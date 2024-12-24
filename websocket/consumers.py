@@ -79,9 +79,12 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
 
         validated_data = serializer.validated_data
 
-        member_id = validated_data["member_id"]
         content = validated_data["content"]
         task_id = validated_data["task_id"]
+        headers_dict = {key.decode("utf-8"): value.decode("utf-8") for key, value in self.headers}
+
+        auth_token = await sync_to_async(CustomAuthToken.objects.get)(key=headers_dict.get("authorization"))
+        member_id = auth_token.user_id
 
         # Create the comment
         comment = await sync_to_async(Comment.objects.create)(
