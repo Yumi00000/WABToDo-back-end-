@@ -18,6 +18,7 @@ class CustomUser(AbstractUser):
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     is_team_member = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
+    google_id = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"user_id: {self.id} | username: {self.username},"
