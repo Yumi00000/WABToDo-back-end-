@@ -100,6 +100,7 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
         if action == "get_next_batch":
             last_item_id = data["last_item_id"]
             await self.send_existing_content(self.pk, last_item_id)
+
     async def handle_create(self, data):
         serializer = CommentSerializer(data=data)
         if not serializer.is_valid():
@@ -217,6 +218,7 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
         if action == "get_next_batch":
             last_item_id = data["last_item_id"]
             await self.send_existing_content(self.pk, last_item_id)
+
     async def handle_create(self, data):
         logger.debug(f"Received data: {data}")
         serializer = NotificationSerializer(data=data)
@@ -320,6 +322,7 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
         if action == "get_next_batch":
             last_item_id = data["last_item_id"]
             await self.send_existing_content(self.pk, last_item_id)
+
     async def handle_create(self, data):
         serializer = MessageSerializer(data=data)
 
