@@ -1,3 +1,4 @@
+from autobahn.util import generate_user_password
 from django.contrib.auth import login
 from django.db.models import Q
 from rest_framework import generics, permissions, status, serializers
@@ -14,6 +15,12 @@ from users.mixins import UserLoggerMixin, TeamLoggerMixin
 from users.models import Chat, CustomUser, Participant
 from users.models import CustomAuthToken, Team
 from users.paginations import DashboardPagination
+
+
+class EditUserView(generics.RetrieveUpdateAPIView, GenericViewSet):
+    queryset = CustomUser.objects.all()
+    permission_classes = [c_prm.IsAccountOwner]
+    serializer_class = user_serializers.EditUserSerializer
 
 
 class DashboardView(generics.ListAPIView, GenericViewSet, UserLoggerMixin):
@@ -154,9 +161,7 @@ class EditChatView(generics.UpdateAPIView, GenericViewSet):
 
 class ChatView(generics.RetrieveAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [
-        c_prm.IsChatParticipant
-    ]
+    permission_classes = [c_prm.IsChatParticipant]
     serializer_class = user_serializers.ChatSerializer
 
     def get(self, request, *args, **kwargs):
@@ -181,7 +186,7 @@ class ChatListView(generics.ListAPIView, GenericViewSet):
         token = headers.split("Bearer ")[1]
         user_id = CustomAuthToken.objects.get(key=token).user_id
         # Filter chats by participants through the related name 'participants'
-        chat_ids = Participant.objects.filter(user_id=user_id).values_list('chat_id', flat=True)
+        chat_ids = Participant.objects.filter(user_id=user_id).values_list("chat_id", flat=True)
         return Chat.objects.filter(id__in=chat_ids)
 
 
@@ -222,13 +227,20 @@ class GoogleLoginApi(APIView):
         user_info = google_login_flow.get_user_info(google_tokens=google_tokens)
 
         user_email = id_token_decoded["email"]
+        password = generate_user_password()
 
         user, created = CustomUser.objects.get_or_create(
             email=user_email,
             defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")},
         )
+        if user:
+            user.google_id = id_token_decoded.get("sub")
+            user.save()
+        if created:
+            user.set_password(password)
+            CustomAuthToken.objects.create(user=user)
+            user.save()
 
-        CustomAuthToken.objects.create(user=user)
         if user is None:
             return Response({"error": f"User with email {user_email} is not found."}, status=status.HTTP_404_NOT_FOUND)
 

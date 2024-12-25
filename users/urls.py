@@ -16,6 +16,7 @@ router.register("chat/create", views.CreateChatView, basename="create_chat")
 router.register("chat/edit", views.EditChatView, basename="edit_chat")
 router.register("chat/info", views.ChatView, basename="chat_info")
 router.register("chat/list", views.ChatListView, basename="chat_list")
+router.register("edit", views.EditUserView, basename="edit_user")
 urlpatterns = router.urls
 urlpatterns += [
     # path("login/", views.LoginView.as_view(), name="account_login"),
