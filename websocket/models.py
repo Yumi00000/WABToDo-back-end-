@@ -9,7 +9,7 @@ class Comment(models.Model):
     updated_at = models.DateTimeField(null=True)
 
     def __str__(self):
-        return self.content
+        return f"{self.content}"
 
 
 class Message(models.Model):
@@ -20,7 +20,7 @@ class Message(models.Model):
     updated_at = models.DateTimeField(null=True)
 
     def __str__(self):
-        return self.content
+        return f"{self.content} | {self.sender}"
 
 
 class Notification(models.Model):
@@ -29,4 +29,4 @@ class Notification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.content
+        return f"{self.content}"

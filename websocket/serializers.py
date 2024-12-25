@@ -6,7 +6,7 @@ from websocket.models import Comment, Notification, Message
 
 class CommentSerializer(serializers.ModelSerializer):
     content = serializers.JSONField()
-    member_id = serializers.IntegerField(write_only=True)
+    member_id = serializers.IntegerField(required=False)
     task_id = serializers.IntegerField(write_only=True)
 
     class Meta:
@@ -39,10 +39,11 @@ class NotificationSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     chat_id = serializers.IntegerField(write_only=True)
     content = serializers.JSONField()
+    sender_id = serializers.IntegerField(required=False)
 
     class Meta:
         model = Message
-        fields = ["chat_id", "content", "created_at"]
+        fields = ["chat_id", "content", "created_at", "sender_id"]
         read_only_fields = ["created_at"]
 
 

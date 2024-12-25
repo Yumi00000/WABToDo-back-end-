@@ -98,9 +98,15 @@ class CustomLoginSerializer(LoginSerializer):
 class EditUserSerializer(serializers.ModelSerializer):
     username = serializers.CharField()
     email = serializers.EmailField()
-    firstName = serializers.CharField(source="first_name", )
-    lastName = serializers.CharField(source="last_name", )
-    phoneNumber = serializers.CharField(source="phone_number", )
+    firstName = serializers.CharField(
+        source="first_name",
+    )
+    lastName = serializers.CharField(
+        source="last_name",
+    )
+    phoneNumber = serializers.CharField(
+        source="phone_number",
+    )
 
     class Meta:
         model = CustomUser

@@ -19,24 +19,6 @@ from websocket.serializers import (
 logger = logging.getLogger(__name__)
 
 
-class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.headers = {}
-        self.group_name = None
-
-    async def connect(self):
-        self.headers = self.scope.get("headers", [])
-        logger.info("WebSocket connected")
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        await self.close()
-        logger.info("WebSocket disconnected")
-
-
 @sync_to_async
 def get_username(user_pk):
     db_response = CustomUser.objects.get(id=user_pk).username
@@ -49,10 +31,64 @@ def get_recipients_emails(recipients_pk):
     return emails
 
 
+@sync_to_async
+def get_serialized_content(instance, instance_id: int, instance_serializer):
+    content = None
+    if instance is Message:
+        content = instance.objects.filter(chat_id=instance_id).order_by("-created_at").all()
+    if instance is Comment:
+        content = instance.objects.filter(task_id=instance_id).order_by("-created_at").all()
+    if instance is Notification:
+        content = instance.objects.filter(user_id=instance_id).order_by("-created_at").all()
+    response_serializer = instance_serializer(content, many=True)
+    response = {
+        "content": response_serializer.data,
+    }
+    return response
+
+
+class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.headers = {}
+        self.group_name = None
+        self.instance = None
+        self.instance_serializer = None
+        self.type = None
+        self.pk = None
+
+    async def connect(self):
+        self.headers = self.scope.get("headers", [])
+
+        self.pk = self.scope["url_route"]["kwargs"]["pk"]
+        self.group_name = f"{self.group_name}_{self.pk}"
+
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+        await self.send_existing_content(self.pk)
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        await self.close()
+        logger.info("WebSocket disconnected")
+
+    async def send_existing_content(self, pk):
+        response = {
+            "type": self.type,
+            "instance_id": pk,
+            "content": await get_serialized_content(self.instance, pk, self.instance_serializer),
+        }
+
+        await self.send(text_data=json.dumps(response))
+
+
 class CommentConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.group_name = "comments_room"
+        self.group_name = "comments"
+        self.instance = Comment
+        self.type = "send_comment"
+        self.instance_serializer = CommentSerializer
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
@@ -170,7 +206,10 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
 class NotificationConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.group_name = "notifications_room"
+        self.group_name = "notifications"
+        self.instance = Notification
+        self.type = "send_notification"
+        self.instance_serializer = NotificationSerializer
 
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
@@ -191,7 +230,7 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
             return
 
         validated_data = serializer.validated_data
-        user_id = validated_data["user_id"]
+        user_id = self.pk
         content = validated_data["content"]
 
         notification = await sync_to_async(Notification.objects.create)(user_id=user_id, content=content)
@@ -264,7 +303,10 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
 class MessageConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.group_name = "messages_room"
+        self.group_name = "chat"
+        self.instance = Message
+        self.type = "send_message"
+        self.instance_serializer = MessageSerializer
 
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
@@ -272,9 +314,9 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
         action = data.get("action")
         if action == "create":
             await self.handle_create(data)
-        if action == "update":
+        elif action == "update":
             await self.handle_update(data)
-        if action == "delete":
+        elif action == "delete":
             await self.handle_delete(data)
 
     async def handle_create(self, data):
@@ -385,6 +427,7 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
             return
 
     async def send_message(self, event):
+
         await self.send(
             text_data=json.dumps(
                 event,
