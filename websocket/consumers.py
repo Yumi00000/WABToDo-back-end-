@@ -21,24 +21,12 @@ logger = logging.getLogger(__name__)
 
 @sync_to_async
 def get_username(user_pk):
-    db_response = CustomUser.objects.get(id=user_pk).username
-    return db_response
+    return CustomUser.objects.get(id=user_pk).username
 
 
 @sync_to_async
 def get_recipients_emails(recipients_pk):
-    emails = [CustomUser.objects.get(id=recipient_pk).email for recipient_pk in recipients_pk]
-    return emails
-
-
-@sync_to_async
-def get_serialized_content(instance, instance_serializer, filter_kwargs: dict):
-    content = instance.objects.filter(**filter_kwargs).order_by("-created_at").all()
-    response_serializer = instance_serializer(content, many=True)
-    response = {
-        "content": response_serializer.data,
-    }
-    return response
+    return [CustomUser.objects.get(id=recipient_pk).email for recipient_pk in recipients_pk]
 
 
 class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
@@ -54,7 +42,6 @@ class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.headers = self.scope.get("headers", [])
-
         self.pk = self.scope["url_route"]["kwargs"]["pk"]
         self.group_name = f"{self.group_name}_{self.pk}"
 
@@ -67,14 +54,20 @@ class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
         await self.close()
         logger.info("WebSocket disconnected")
 
-    async def send_existing_content(self, pk):
-        response = {
-            "type": self.type,
-            "instance_id": pk,
-            "content": await get_serialized_content(self.instance, self.instance_serializer, {f"{self.filter}": pk}),
-        }
+    async def send_existing_content(self, pk, last_item_id=None, batch_size=50):
+        from core.tasks import send_chunked_data
 
-        await self.send(text_data=json.dumps(response))
+        filter_kwargs = {f"{self.filter}": pk}
+        if last_item_id:
+            filter_kwargs["id__gt"] = last_item_id  # Fetch items with IDs greater than the last sent
+
+        send_chunked_data.delay(
+            group_name=self.group_name,
+            instance_model=self.instance.__name__,  # Send model name as string
+            instance_serializer_class=self.instance_serializer.__name__,  # Send serializer name as string
+            filter_kwargs=filter_kwargs,
+            batch_size=batch_size,
+        )
 
 
 class CommentConsumer(BaseAsyncWebsocketConsumer):
@@ -198,6 +191,9 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
             )
         )
 
+    async def send_data_chunk(self, event):
+        await self.send(text_data=event["message"])
+
 
 class NotificationConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -295,6 +291,9 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
                 "errors": {"notification": str(e)},
             }
             await self.send(text_data=json.dumps(error_message))
+
+    async def send_data_chunk(self, event):
+        await self.send(text_data=event["message"])
 
 
 class MessageConsumer(BaseAsyncWebsocketConsumer):
@@ -431,3 +430,6 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
                 event,
             )
         )
+
+    async def send_data_chunk(self, event):
+        await self.send(text_data=event["message"])

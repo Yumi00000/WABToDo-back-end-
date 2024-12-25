@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from users.models import Chat, Participant
 from websocket.models import Comment, Notification, Message
 
 
@@ -57,3 +56,15 @@ class UpdateMessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ["pk", "chat_id", "sender_id", "content", "updated_at"]
         read_only_fields = ["updated_at"]
+
+
+def get_serializer(serializer_label):
+    serializers = {
+        "CommentSerializer": CommentSerializer,
+        "NotificationSerializer": NotificationSerializer,
+        "MessageSerializer": MessageSerializer,
+        "UpdateMessageSerializer": UpdateMessageSerializer,
+        "UpdateCommentSerializer": UpdateCommentSerializer,
+    }
+    serializer = serializers[serializer_label]
+    return serializer
