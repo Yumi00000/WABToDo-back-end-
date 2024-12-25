@@ -32,14 +32,8 @@ def get_recipients_emails(recipients_pk):
 
 
 @sync_to_async
-def get_serialized_content(instance, instance_id: int, instance_serializer):
-    content = None
-    if instance is Message:
-        content = instance.objects.filter(chat_id=instance_id).order_by("-created_at").all()
-    if instance is Comment:
-        content = instance.objects.filter(task_id=instance_id).order_by("-created_at").all()
-    if instance is Notification:
-        content = instance.objects.filter(user_id=instance_id).order_by("-created_at").all()
+def get_serialized_content(instance, instance_serializer, filter_kwargs: dict):
+    content = instance.objects.filter(**filter_kwargs).order_by("-created_at").all()
     response_serializer = instance_serializer(content, many=True)
     response = {
         "content": response_serializer.data,
@@ -56,6 +50,7 @@ class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
         self.instance_serializer = None
         self.type = None
         self.pk = None
+        self.filter = ""
 
     async def connect(self):
         self.headers = self.scope.get("headers", [])
@@ -76,7 +71,7 @@ class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
         response = {
             "type": self.type,
             "instance_id": pk,
-            "content": await get_serialized_content(self.instance, pk, self.instance_serializer),
+            "content": await get_serialized_content(self.instance, self.instance_serializer, {f"{self.filter}": pk}),
         }
 
         await self.send(text_data=json.dumps(response))
@@ -89,6 +84,7 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
         self.instance = Comment
         self.type = "send_comment"
         self.instance_serializer = CommentSerializer
+        self.filter = "task_id"
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
@@ -210,6 +206,7 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
         self.instance = Notification
         self.type = "send_notification"
         self.instance_serializer = NotificationSerializer
+        self.filter = "user_id"
 
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
@@ -307,6 +304,7 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
         self.instance = Message
         self.type = "send_message"
         self.instance_serializer = MessageSerializer
+        self.filter = "chat_id"
 
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
