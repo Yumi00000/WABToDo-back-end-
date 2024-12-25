@@ -39,6 +39,7 @@ class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
         self.type = None
         self.pk = None
         self.filter = ""
+        self.batch_size = 50
 
     async def connect(self):
         self.headers = self.scope.get("headers", [])
@@ -54,20 +55,23 @@ class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
         await self.close()
         logger.info("WebSocket disconnected")
 
-    async def send_existing_content(self, pk, last_item_id=None, batch_size=50):
+    async def send_existing_content(self, pk, last_item_id=None):
         from core.tasks import send_chunked_data
 
         filter_kwargs = {f"{self.filter}": pk}
         if last_item_id:
-            filter_kwargs["id__gt"] = last_item_id  # Fetch items with IDs greater than the last sent
+            filter_kwargs["id__lt"] = last_item_id  # Fetch items with IDs greater than the last sent
 
         send_chunked_data.delay(
             group_name=self.group_name,
             instance_model=self.instance.__name__,  # Send model name as string
             instance_serializer_class=self.instance_serializer.__name__,  # Send serializer name as string
             filter_kwargs=filter_kwargs,
-            batch_size=batch_size,
+            batch_size=self.batch_size,
         )
+
+    async def send_data_chunk(self, event):
+        await self.send(text_data=event["message"])
 
 
 class CommentConsumer(BaseAsyncWebsocketConsumer):
@@ -93,7 +97,9 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
             await self.handle_update(data)
         if action == "delete":
             await self.handle_delete(data)
-
+        if action == "get_next_batch":
+            last_item_id = data["last_item_id"]
+            await self.send_existing_content(self.pk, last_item_id)
     async def handle_create(self, data):
         serializer = CommentSerializer(data=data)
         if not serializer.is_valid():
@@ -191,9 +197,6 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
             )
         )
 
-    async def send_data_chunk(self, event):
-        await self.send(text_data=event["message"])
-
 
 class NotificationConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -211,7 +214,9 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
             await self.handle_create(data)
         if action == "delete":
             await self.handle_delete(data)
-
+        if action == "get_next_batch":
+            last_item_id = data["last_item_id"]
+            await self.send_existing_content(self.pk, last_item_id)
     async def handle_create(self, data):
         logger.debug(f"Received data: {data}")
         serializer = NotificationSerializer(data=data)
@@ -292,9 +297,6 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
             }
             await self.send(text_data=json.dumps(error_message))
 
-    async def send_data_chunk(self, event):
-        await self.send(text_data=event["message"])
-
 
 class MessageConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -315,7 +317,9 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
             await self.handle_update(data)
         elif action == "delete":
             await self.handle_delete(data)
-
+        if action == "get_next_batch":
+            last_item_id = data["last_item_id"]
+            await self.send_existing_content(self.pk, last_item_id)
     async def handle_create(self, data):
         serializer = MessageSerializer(data=data)
 
@@ -430,6 +434,3 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
                 event,
             )
         )
-
-    async def send_data_chunk(self, event):
-        await self.send(text_data=event["message"])
