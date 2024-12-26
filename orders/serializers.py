@@ -1,6 +1,11 @@
+import logging
+from datetime import timedelta
+
 from django.utils import timezone
+from django.utils.timezone import now
 from rest_framework import serializers
 
+from core.tasks import on_delete_time_item
 from orders.models import Order, OrderStatus
 from orders.utils import change_date_format, OrderManager
 from tasks.models import Task
@@ -15,6 +20,7 @@ class OrderSerializer(serializers.ModelSerializer):
     createdAt = serializers.ReadOnlyField(source="created_at")
     updatedAt = serializers.ReadOnlyField(source="updated_at")
     acceptedAt = serializers.ReadOnlyField(source="accepted_at")
+    on_delete_time = serializers.ReadOnlyField(source="on_delete_date")
 
     class Meta:
         model = Order
@@ -31,6 +37,11 @@ class OrderSerializer(serializers.ModelSerializer):
             "team",
             "tasks",
             "status",
+            "on_delete_date",
+            "action"
+        ]
+        read_only_fields = [
+            "on_delete_date"
         ]
 
     def get_tasks(self, obj):
@@ -73,12 +84,16 @@ class UpdateOrderSerializer(OrderSerializer):
     name = serializers.CharField(required=False)
     description = serializers.CharField(required=False)
     deadline = serializers.DateField(required=False)
+    action = serializers.CharField(required=False)
 
     def update(self, instance: Order, validated_data):
         instance.name = validated_data.get("name", instance.name)
         instance.description = validated_data.get("description", instance.description)
         instance.deadline = validated_data.get("deadline", instance.deadline)
         instance.updated_at = timezone.now()
+        if validated_data.get("action") == "delete":
+            instance.on_delete_date = timezone.now() + timedelta(days=7)
+            self.schedule_delete(instance)
         instance.save()
 
         return instance
@@ -94,6 +109,17 @@ class UpdateOrderSerializer(OrderSerializer):
             "updatedAt": updated_at,
             "status": instance.status,
         }
+
+    def schedule_delete(self, instance):
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"Scheduling delete for Order ID {instance.id} at {instance.on_delete_date}")
+        delete_time = instance.on_delete_date
+        if delete_time < now():
+            on_delete_time_item.apply_async(
+                args=[instance.__class__.__name__, instance.pk, "orders"],
+                eta=delete_time,
+            )
 
 
 class UnacceptedOrderSerializer(OrderSerializer):
