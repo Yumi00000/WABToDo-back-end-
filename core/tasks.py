@@ -6,12 +6,13 @@ from celery import shared_task
 from channels.layers import get_channel_layer
 from django.apps import apps
 from django.core.mail.message import EmailMultiAlternatives
-from django.utils import timezone
 
 from core.settings import DEFAULT_FROM_EMAIL
 from websocket.serializers import get_serializer
 
 logger = logging.getLogger(__name__)
+
+
 @shared_task
 def send_email(subject, message, to_email, **kwargs):
     print("send_email task called")
@@ -44,6 +45,7 @@ def send_chunked_data(group_name, instance_model, instance_serializer_class, fil
         group_name,
         {"type": "send_data_chunk", "message": json.dumps(response)},
     )
+
 
 @shared_task
 def on_delete_time_item(instance_model, instance_pk, app_label):

@@ -38,11 +38,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "tasks",
             "status",
             "on_delete_date",
-            "action"
+            "action",
         ]
-        read_only_fields = [
-            "on_delete_date"
-        ]
+        read_only_fields = ["on_delete_date"]
 
     def get_tasks(self, obj):
         tasks = Task.objects.filter(order=obj)

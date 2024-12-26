@@ -7,6 +7,7 @@ from .serializers import UpdateOrderSerializer
 
 logger = logging.getLogger(__name__)
 
+
 @receiver(post_save, sender=Order)
 def handle_schedule_delete(sender, instance, **kwargs):
     logger.info(f"Signal triggered for Order ID: {instance.id}")

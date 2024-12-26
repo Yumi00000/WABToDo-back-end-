@@ -159,7 +159,6 @@ class DashboardSerializer(OrderSerializer):
             "createdAt": created_at,
             "accepted": instance.accepted,
             "status": instance.status,
-            "delete_time": instance.on_delete_date
         }
 
 

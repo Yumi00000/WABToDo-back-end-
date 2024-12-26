@@ -217,7 +217,7 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
 CELERY_TASK_BACKEND = "rpc://"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-CELERY_IMPORTS=["core.tasks"]
+CELERY_IMPORTS = ["core.tasks"]
 
 # SocialAccount configuration
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
