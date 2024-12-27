@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from decouple import config
@@ -47,9 +48,10 @@ INSTALLED_APPS = [
     # INSTALLED
     "rest_framework",
     "rest_framework.authtoken",
+    "rest_framework_simplejwt",
     "django_extensions",
     "django_celery_beat",
-    # "channels_redis",
+    "channels_redis",
     "channels",
     "dj_rest_auth",
     "drf_spectacular",
@@ -64,14 +66,14 @@ SITE_ID = 1
 
 ASGI_APPLICATION = "websocket.asgi.application"
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [("0.0.0.0", 6379)],
-#         },
-#     },
-# }
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("0.0.0.0", 6379)],
+        },
+    },
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -173,6 +175,7 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# RDF configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         # "rest_framework.authentication.SessionAuthentication",
@@ -260,9 +263,6 @@ ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 LOGIN_URL = "api/users/login/"
 
 REST_AUTH = {
-    "LOGIN_SERIALIZER": "users.serializers.CustomLoginSerializer",
-    "REGISTER_SERIALIZER": "users.serializers.RegistrationSerializer",
-    "TOKEN_MODEL": "users.models.CustomAuthToken",
     "PASSWORD_RESET_USE_SITES_DOMAIN": False,
     "OLD_PASSWORD_FIELD_ENABLED": False,
     "LOGOUT_ON_PASSWORD_CHANGE": True,
