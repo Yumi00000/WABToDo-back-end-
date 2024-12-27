@@ -36,7 +36,7 @@ class CustomAuthToken(models.Model):
         if not self.key:
             self.key = self.generate_jwt()
         if not self.expires_at:
-            self.expires_at = now() + timedelta(minutes=2)
+            self.expires_at = now() + timedelta(days=7)
         return super().save(*args, **kwargs)
 
     def generate_jwt(self):
@@ -44,7 +44,7 @@ class CustomAuthToken(models.Model):
             "user_id": self.user.id,
             "username": self.user.username,
             "iat": now(),
-            "exp": now() + timedelta(hours=168),
+            "exp": now() + timedelta(days=7),
             "user_agent": self.user_agent,
         }
         return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
