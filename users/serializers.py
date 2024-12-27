@@ -1,23 +1,32 @@
 import phonenumbers
-from dj_rest_auth.registration.serializers import RegisterSerializer
-from dj_rest_auth.serializers import LoginSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django_celery_beat.utils import now
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from orders.models import Order
 from orders.serializers import OrderSerializer
 from orders.utils import change_date_format
+from users.utils import PasswordValidator
 from users.models import CustomUser, Team, Chat, Participant
 
 
-class RegistrationSerializer(RegisterSerializer):
-    firstName = serializers.CharField(source="first_name", required=True)
+
+class RegistrationSerializer(serializers.ModelSerializer, PasswordValidator):
+    username = serializers.CharField(required=True, trim_whitespace=False)
+    firstName = serializers.CharField(
+        source="first_name",
+        required=True,
+    )
     lastName = serializers.CharField(source="last_name", required=True)
     email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())])
-    password1 = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password], trim_whitespace=False
+    )
+    password2 = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password], trim_whitespace=False
+    )
     isTeamMember = serializers.BooleanField(source="is_team_member", required=False, default=False)
     isAdmin = serializers.BooleanField(source="is_admin", required=False, default=False)
     isStaff = serializers.BooleanField(source="is_staff", required=False, default=False)
@@ -31,7 +40,7 @@ class RegistrationSerializer(RegisterSerializer):
             "username",
             "firstName",
             "lastName",
-            "password1",
+            "password",
             "password2",
             "email",
             "phoneNumber",
@@ -41,8 +50,22 @@ class RegistrationSerializer(RegisterSerializer):
         ]
 
     def validate(self, attrs: dict):
-        if attrs.get("password1") != attrs.get("password2"):
+
+        if attrs.get("password") != attrs.get("password2"):
             raise serializers.ValidationError({"password": "Passwords fields didn't match."})
+
+        if not self.password_validator(attrs):
+            raise serializers.ValidationError(
+                {
+                    "password": "Not a reliable password.",
+                    "password scheme": {
+                        "capital_letter": "At least once capital letter is required.",
+                        "numeric": "At least once numeric is required.",
+                        "cannot_be_used": "Username, first or last name, email.",
+                        "spaces": "Password must not contain spaces.",
+                    },
+                }
+            )
 
         if attrs.get("phone_number"):
             attrs["phone_number"] = self.validate_phone_number(attrs["phone_number"])
@@ -59,6 +82,7 @@ class RegistrationSerializer(RegisterSerializer):
             is_team_member=validated_data.get("is_team_member", False),
             is_admin=validated_data.get("is_admin", False),
             is_staff=validated_data.get("is_staff", False),
+            is_active=False,
         )
         user.set_password(validated_data["password"])
         user.save()
@@ -70,19 +94,20 @@ class RegistrationSerializer(RegisterSerializer):
         try:
             parsed = phonenumbers.parse(phone_number, None)
             if not phonenumbers.is_valid_number(parsed):
-                raise serializers.ValidationError("Invalid phone number.")
+                raise serializers.ValidationError({"phone_number": "Invalid phone number."})
             return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
         except phonenumbers.NumberParseException:
-            raise serializers.ValidationError("Invalid phone number format.")
+            raise serializers.ValidationError({"phone_number": "Invalid phone number format."})
 
 
-class CustomLoginSerializer(LoginSerializer):
+class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True)
+    user_agent = serializers.CharField(required=True)
 
-    def validate(self, data: dict) -> dict:
-        username = data.get("username")
-        password = data.get("password")
+    def validate(self, data: dict) -> dict | None:
+        username = data["username"]
+        password = data["password"]
 
         if not username or not password:
             raise serializers.ValidationError("To login you must provide both username and password.")
@@ -90,6 +115,8 @@ class CustomLoginSerializer(LoginSerializer):
         user = authenticate(username=username, password=password)
         if not user:
             raise serializers.ValidationError("Invalid username or password.")
+        user.last_login = now()
+        user.save()
 
         data["user"] = user
         return data
