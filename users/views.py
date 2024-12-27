@@ -1,13 +1,6 @@
 from django.contrib.auth import login
 from django.core.signing import Signer, BadSignature
-from urllib.parse import urljoin
-import requests
-from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-from dj_rest_auth.registration.views import SocialLoginView
-
 from django.db.models import Q
-
 from rest_framework import generics, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,10 +9,9 @@ from rest_framework.viewsets import GenericViewSet
 from core import permissions as c_prm
 from core.service import GoogleRawLoginFlowService
 from orders.models import Order
-
-from users.models import CustomUser, CustomAuthToken, Team, Chat, CustomUser
 from users import serializers as user_serializers
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
+from users.models import CustomAuthToken, Team, Chat, CustomUser
 from users.paginations import DashboardPagination
 from users.utils import send_activation_email, TokenManager
 
@@ -194,15 +186,14 @@ class TeamView(generics.RetrieveAPIView, GenericViewSet, TeamLoggerMixin):
             return Response(response_error_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
 class CreateChatView(generics.CreateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
     permission_classes = [permissions.IsAuthenticated, ]
-    serializer_class = serializers.CreateChatSerializer
+    serializer_class = user_serializers.CreateChatSerializer
 
 
 class GoogleLoginApi(APIView):
-    serializer_class = serializers.InputSerializer
+    serializer_class = user_serializers.InputSerializer
 
     def get(self, request, *args, **kwargs):
         input_serializer = self.serializer_class(data=request.GET)
