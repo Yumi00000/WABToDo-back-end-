@@ -18,6 +18,7 @@ class CustomUser(AbstractUser):
     phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     is_team_member = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
+    google_id = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"user_id: {self.id} | username: {self.username},"
@@ -68,6 +69,7 @@ class Team(models.Model):
 class Participant(models.Model):
     chat = models.ForeignKey("Chat", on_delete=models.CASCADE, related_name="participants")
     user = models.ForeignKey("users.CustomUser", on_delete=models.CASCADE, related_name="participants")
+    role = models.CharField(max_length=11, default="user")
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

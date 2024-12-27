@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from users.models import Chat, Participant
 from websocket.models import Comment, Notification, Message
 
 
