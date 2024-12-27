@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import jwt
 from django.contrib.auth.models import AbstractUser
@@ -36,15 +36,15 @@ class CustomAuthToken(models.Model):
         if not self.key:
             self.key = self.generate_jwt()
         if not self.expires_at:
-            self.expires_at = datetime.now() + timedelta(hours=168)
+            self.expires_at = now() + timedelta(minutes=2)
         return super().save(*args, **kwargs)
 
     def generate_jwt(self):
         payload = {
             "user_id": self.user.id,
             "username": self.user.username,
-            "iat": datetime.now(),
-            "exp": datetime.now() + timedelta(hours=168),
+            "iat": now(),
+            "exp": now() + timedelta(hours=168),
             "user_agent": self.user_agent,
         }
         return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")

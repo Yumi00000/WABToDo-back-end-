@@ -9,9 +9,9 @@ from core import permissions as c_prm
 from orders.models import Order
 from users import serializers as user_serializers
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
-from users.models import CustomAuthToken, Team, CustomUser
+from users.models import Team, CustomUser
 from users.paginations import DashboardPagination
-from users.utils import send_activation_email
+from users.utils import send_activation_email, TokenManager
 
 
 class RegistrationView(generics.CreateAPIView, GenericViewSet):
@@ -45,7 +45,7 @@ class ActivateView(APIView):
         return Response({"detail": "Account successfully activated"}, status=status.HTTP_200_OK)
 
 
-class LoginView(APIView):
+class LoginView(APIView, TokenManager):
     permission_classes = [permissions.AllowAny]
     serializer_class = user_serializers.LoginSerializer
 
@@ -53,22 +53,15 @@ class LoginView(APIView):
         user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
 
         serializer = self.serializer_class(data={**request.data, "user_agent": user_agent})
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
-        token, created = CustomAuthToken.objects.get_or_create(
-            user=user,
-            user_agent=user_agent,
+        token, created = self.get_or_create_token(user, user_agent)
+
+        return Response(
+            {"token": token.key},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
-        if not created:
-            if token.is_valid():
-                return Response({"token": token.key}, status=status.HTTP_200_OK)
-            token.delete()
-
-        token = CustomAuthToken.objects.create(user=user, user_agent=user_agent)
-
-        return Response({"token": token.key}, status=status.HTTP_201_CREATED)
 
 
 class DashboardView(generics.ListAPIView, GenericViewSet, UserLoggerMixin):

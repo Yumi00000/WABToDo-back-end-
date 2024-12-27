@@ -1,9 +1,21 @@
 from difflib import SequenceMatcher
 
 from django.core.signing import Signer
+from django.core.cache import cache
+from django.utils.timezone import now
 
-from users.models import CustomUser
+from users.models import CustomUser, CustomAuthToken
 from users.tasks import send_email
+
+
+def send_activation_email(request, user: CustomUser) -> None:
+    """
+    Sends an activation email to the user
+    """
+    user_signed = Signer().sign(user.id)
+    signed_url = request.build_absolute_uri(f"/api/users/activate/{user_signed}")
+
+    send_email.delay(user.email, signed_url)
 
 
 class PasswordValidator:
@@ -105,11 +117,41 @@ class PasswordValidator:
         return True if " " in self._password else False
 
 
-def send_activation_email(request, user: CustomUser) -> None:
-    """
-    Sends an activation email to the user
-    """
-    user_signed = Signer().sign(user.id)
-    signed_url = request.build_absolute_uri(f"/api/users/activate/{user_signed}")
+class TokenManager:
 
-    send_email.delay(user.email, signed_url)
+    def get_or_create_token(self, user, user_agent):
+        token = CustomAuthToken.objects.filter(user=user, user_agent=user_agent).first()
+
+        if token and token.is_valid():
+            self._cache_token(token)
+            return token, False
+
+        if token:
+            token.delete()
+
+        new_token = CustomAuthToken.objects.create(user=user, user_agent=user_agent)
+        self._cache_token(new_token)
+        return new_token, True
+
+    @staticmethod
+    def _cache_token(token):
+        """
+        Add the token to the cache if the remaining lifetime is greater than 10 hours.
+        """
+        remaining_time = (token.expires_at - now()).total_seconds()
+        if remaining_time > 36000:  # 10 hours
+            cache.set(f"token_{token.key}", token, timeout=remaining_time)
+
+    @staticmethod
+    def remove_from_cache(token_key):
+        """
+        Removes token from the cache
+        """
+        cache.delete(f"token_{token_key}")
+
+    @staticmethod
+    def cleanup_expired_tokens():
+        """
+        Removes expired tokens from database
+        """
+        CustomAuthToken.objects.filter(expires_at__lte=now()).delete()

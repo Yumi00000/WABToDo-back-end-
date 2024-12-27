@@ -81,7 +81,7 @@ class RegistrationSerializer(serializers.ModelSerializer, PasswordValidator):
             is_team_member=validated_data.get("is_team_member", False),
             is_admin=validated_data.get("is_admin", False),
             is_staff=validated_data.get("is_staff", False),
-            is_active=False
+            is_active=False,
         )
         user.set_password(validated_data["password"])
         user.save()
@@ -112,10 +112,10 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("To login you must provide both username and password.")
 
         user = authenticate(username=username, password=password)
-        user.last_login = now()
-        user.save()
         if not user:
             raise serializers.ValidationError("Invalid username or password.")
+        user.last_login = now()
+        user.save()
 
         data["user"] = user
         return data

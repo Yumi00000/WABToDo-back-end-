@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django_extensions",
     "django_celery_beat",
-    "channels_redis",
+    # "channels_redis",
     "channels",
     "dj_rest_auth",
     "drf_spectacular",
@@ -66,14 +66,14 @@ SITE_ID = 1
 
 ASGI_APPLICATION = "websocket.asgi.application"
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("0.0.0.0", 6379)],
-        },
-    },
-}
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [("0.0.0.0", 6379)],
+#         },
+#     },
+# }
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -84,6 +84,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "core.middleware.TokenCacheMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -284,4 +285,13 @@ SPECTACULAR_SETTINGS = {
             "bearerFormat": "JWT",
         }
     },
+}
+
+# Cache
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "TIMEOUT": 300,
+    }
 }
