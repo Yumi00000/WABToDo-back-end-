@@ -1,7 +1,7 @@
 import phonenumbers
-from dj_rest_auth.serializers import LoginSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django_celery_beat.utils import now
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
@@ -13,11 +13,19 @@ from users.utils import PasswordValidator
 
 
 class RegistrationSerializer(serializers.ModelSerializer, PasswordValidator):
-    firstName = serializers.CharField(source="first_name", required=True)
+    username = serializers.CharField(required=True, trim_whitespace=False)
+    firstName = serializers.CharField(
+        source="first_name",
+        required=True,
+    )
     lastName = serializers.CharField(source="last_name", required=True)
     email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())])
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password], trim_whitespace=False
+    )
+    password2 = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password], trim_whitespace=False
+    )
     isTeamMember = serializers.BooleanField(source="is_team_member", required=False, default=False)
     isAdmin = serializers.BooleanField(source="is_admin", required=False, default=False)
     isStaff = serializers.BooleanField(source="is_staff", required=False, default=False)
@@ -53,6 +61,7 @@ class RegistrationSerializer(serializers.ModelSerializer, PasswordValidator):
                         "capital_letter": "At least once capital letter is required.",
                         "numeric": "At least once numeric is required.",
                         "cannot_be_used": "Username, first or last name, email.",
+                        "spaces": "Password must not contain spaces.",
                     },
                 }
             )
@@ -72,6 +81,7 @@ class RegistrationSerializer(serializers.ModelSerializer, PasswordValidator):
             is_team_member=validated_data.get("is_team_member", False),
             is_admin=validated_data.get("is_admin", False),
             is_staff=validated_data.get("is_staff", False),
+            is_active=False
         )
         user.set_password(validated_data["password"])
         user.save()
@@ -89,18 +99,21 @@ class RegistrationSerializer(serializers.ModelSerializer, PasswordValidator):
             raise serializers.ValidationError({"phone_number": "Invalid phone number format."})
 
 
-class CustomLoginSerializer(LoginSerializer):
+class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True)
+    user_agent = serializers.CharField(required=True)
 
-    def validate(self, data: dict) -> dict:
-        username = data.get("username")
-        password = data.get("password")
+    def validate(self, data: dict) -> dict | None:
+        username = data["username"]
+        password = data["password"]
 
         if not username or not password:
             raise serializers.ValidationError("To login you must provide both username and password.")
 
         user = authenticate(username=username, password=password)
+        user.last_login = now()
+        user.save()
         if not user:
             raise serializers.ValidationError("Invalid username or password.")
 

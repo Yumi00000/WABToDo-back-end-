@@ -3,7 +3,6 @@ from django.urls import path, re_path, include
 from rest_framework import routers
 
 from users import views
-from users.views import GoogleLoginView, GoogleLoginCallback
 
 router = routers.DefaultRouter()
 router.register(r"registration", views.RegistrationView, basename="register"),
@@ -14,13 +13,8 @@ router.register("team/edit", views.UpdateTeamView, basename="update_team")
 router.register("team/info", views.TeamView, basename="team_info")
 urlpatterns = router.urls
 urlpatterns += [
+    path("activate/<user_signed>", views.ActivateView.as_view(), name="activate"),
     path("login/", views.LoginView.as_view(), name="account_login"),
-    path("auth/google/", GoogleLoginView.as_view(), name="google_login"),
-    path(
-        "auth/google/callback/",
-        GoogleLoginCallback.as_view(),
-        name="google_login_callback",
-    ),
     re_path(
         "registration/account-confirm-email/(?P<key>[-:\w]+)/$",
         ConfirmEmailView.as_view(),

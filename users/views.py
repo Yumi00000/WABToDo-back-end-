@@ -1,28 +1,48 @@
-from urllib.parse import urljoin, urlencode
-
-import requests
-from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-from dj_rest_auth.registration.views import SocialLoginView
+from django.core.signing import Signer, BadSignature
 from django.db.models import Q
 from rest_framework import generics, permissions, status, serializers
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
-from core import permissions as c_prm, settings
+from core import permissions as c_prm
 from orders.models import Order
 from users import serializers as user_serializers
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
 from users.models import CustomAuthToken, Team, CustomUser
 from users.paginations import DashboardPagination
+from users.utils import send_activation_email
 
 
 class RegistrationView(generics.CreateAPIView, GenericViewSet):
     queryset = CustomUser.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = user_serializers.RegistrationSerializer
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        user = self.get_queryset().get(email=response.data["email"])
+        print(user)
+        send_activation_email(request, user)
+        return response
+
+
+class ActivateView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, user_signed):
+        signer = Signer()
+        try:
+            print(user_signed)
+            user_id = signer.unsign(user_signed)
+            print(user_id)
+            user = CustomUser.objects.get(id=user_id)
+        except (BadSignature, CustomUser.DoesNotExist):
+            return Response({"detail": "Invalid or expired link"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_active = True
+        user.save()
+        return Response({"detail": "Account successfully activated"}, status=status.HTTP_200_OK)
 
 
 class LoginView(APIView):
@@ -41,44 +61,14 @@ class LoginView(APIView):
             user=user,
             user_agent=user_agent,
         )
-        if token and token.is_valid():
-            return Response({"token": token.key}, status=status.HTTP_200_OK)
+        if not created:
+            if token.is_valid():
+                return Response({"token": token.key}, status=status.HTTP_200_OK)
+            token.delete()
+
+        token = CustomAuthToken.objects.create(user=user, user_agent=user_agent)
 
         return Response({"token": token.key}, status=status.HTTP_201_CREATED)
-
-
-class GoogleLoginView(SocialLoginView):
-    adapter_class = GoogleOAuth2Adapter
-    callback_url = settings.GOOGLE_OAUTH_CALLBACK_URL
-    client_class = OAuth2Client
-
-
-class GoogleLoginCallback(APIView):
-    def get(self, request, *args, **kwargs):
-        code = request.GET.get("code")
-
-        if code is None:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        # Exchange code for access token
-        auth_url_params = {
-            "code": code,
-            "client_id": settings.GOOGLE_OAUTH2_CLIENT_ID,
-            "client_secret": settings.GOOGLE_OAUTH2_CLIENT_SECRET,
-            "redirect_uri": settings.GOOGLE_OAUTH_CALLBACK_URL,
-            "grant_type": "authorization_code",
-        }
-        token_url = f"{settings.SOCIAL_AUTH_GOOGLE_TOKEN_URL}?{urlencode(auth_url_params)}"
-
-        response = requests.post(token_url)
-        ensured_data_url = urljoin("http://localhost:8000", reverse("google_login"))
-
-        response_login = requests.post(ensured_data_url, data={"access_token": response.json()["access_token"]})
-
-        try:
-            return Response(response_login, status=status.HTTP_200_OK)
-        except CustomAuthToken.DoesNotExist:
-            return Response({"detail": "Token not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
 class DashboardView(generics.ListAPIView, GenericViewSet, UserLoggerMixin):

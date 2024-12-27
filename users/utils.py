@@ -1,5 +1,10 @@
 from difflib import SequenceMatcher
 
+from django.core.signing import Signer
+
+from users.models import CustomUser
+from users.tasks import send_email
+
 
 class PasswordValidator:
 
@@ -22,6 +27,7 @@ class PasswordValidator:
                 not self._password_has_username(),
                 not self._password_has_first_or_lastname(),
                 not self._password_has_email(),
+                not self._password_has_spaces(),
             ]
         )
 
@@ -91,3 +97,19 @@ class PasswordValidator:
             return True
 
         return False
+
+    def _password_has_spaces(self):
+        """
+        Returns True if the password has spaces or spaces and False otherwise
+        """
+        return True if " " in self._password else False
+
+
+def send_activation_email(request, user: CustomUser) -> None:
+    """
+    Sends an activation email to the user
+    """
+    user_signed = Signer().sign(user.id)
+    signed_url = request.build_absolute_uri(f"/api/users/activate/{user_signed}")
+
+    send_email.delay(user.email, signed_url)
