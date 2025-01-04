@@ -34,7 +34,7 @@ class CreateOrderView(generics.CreateAPIView, GenericViewSet, OrderLoggerMixin):
 
 class EditOrderView(generics.UpdateAPIView, GenericViewSet, OrderLoggerMixin):
     queryset = Order.objects.all()
-    permission_classes = [custom_perm.IsOrderOwnerOrAdmin]
+    permission_classes = [custom_perm.IsOrderOwnerOrAdmin, permissions.IsAuthenticated]
     serializer_class = orders_serializers.UpdateOrderSerializer
 
     def update(self, request, *args, **kwargs):

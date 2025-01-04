@@ -77,7 +77,7 @@ class DashboardView(generics.ListAPIView, GenericViewSet, UserLoggerMixin):
         team_orders = Q(team__list_of_members=user)
         queryset = Order.objects.filter(owner_orders | team_orders).distinct()
 
-        return queryset
+        return queryset.order_by("created_at")
 
     def list(self, request, *args, **kwargs):
         self.log_attempt_retrieve_dashboard()

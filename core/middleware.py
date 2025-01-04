@@ -22,3 +22,5 @@ class TokenCacheMiddleware:
             remaining_time = (cached_token.expires_at - now()).total_seconds()
             if remaining_time < 36000:  # Less than 10 hours
                 TokenManager.remove_from_cache(token_key)
+
+        return self.get_response(request)
