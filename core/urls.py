@@ -21,14 +21,18 @@ from drf_spectacular.views import SpectacularRedocView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include((
-        [
-            path("users/", include(("users.urls", "users"), namespace="users")),  # Add namespace for users
-            path("orders/", include(("orders.urls", "orders"), namespace="orders")),
-            path("tasks/", include(("tasks.urls", "tasks"), namespace="tasks")),
-            path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
-        ],
-        "api",  # Top-level namespace
-    ))),
+    path(
+        "api/",
+        include(
+            (
+                [
+                    path("users/", include(("users.urls", "users"), namespace="users")),  # Add namespace for users
+                    path("orders/", include(("orders.urls", "orders"), namespace="orders")),
+                    path("tasks/", include(("tasks.urls", "tasks"), namespace="tasks")),
+                    path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+                ],
+                "api",  # Top-level namespace
+            )
+        ),
+    ),
 ]
-

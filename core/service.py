@@ -43,7 +43,7 @@ class GoogleRawLoginFlowService:
         redirect_uri = self._get_redirect_uri()
         print(redirect_uri)
         state = self._generate_state_session_token()
-        print("s",state)
+        print("s", state)
         params = {
             "response_type": "code",
             "client_id": self._credentials.client_id,
@@ -54,9 +54,9 @@ class GoogleRawLoginFlowService:
             "include_granted_scopes": "true",
             "prompt": "select_account",
         }
-        print("p",params)
+        print("p", params)
         query_params = urlencode(params)
-        print("qp",query_params)
+        print("qp", query_params)
         authorization_url = f"{self.GOOGLE_AUTH_URL}?{query_params}"
         print(f"Authorization URL: {authorization_url}, State: {state}")
         return authorization_url, state
@@ -64,10 +64,7 @@ class GoogleRawLoginFlowService:
     def get_user_info(self, *, google_tokens: GoogleAccessTokens):
         access_token = google_tokens.access_token
 
-        response = requests.get(
-            self.GOOGLE_USER_INFO_URL,
-            params={"access_token": access_token}
-        )
+        response = requests.get(self.GOOGLE_USER_INFO_URL, params={"access_token": access_token})
 
         if not response.ok:
             raise ApplicationError("Failed to obtain user info from Google.")
@@ -91,9 +88,6 @@ class GoogleRawLoginFlowService:
             raise ApplicationError("Failed to obtain access token from Google.")
 
         tokens = response.json()
-        google_tokens = GoogleAccessTokens(
-            id_token=tokens["id_token"],
-            access_token=tokens["access_token"]
-        )
+        google_tokens = GoogleAccessTokens(id_token=tokens["id_token"], access_token=tokens["access_token"])
 
         return google_tokens

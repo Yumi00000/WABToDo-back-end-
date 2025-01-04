@@ -188,7 +188,9 @@ class TeamView(generics.RetrieveAPIView, GenericViewSet, TeamLoggerMixin):
 
 class CreateChatView(generics.CreateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
     serializer_class = user_serializers.CreateChatSerializer
 
 
@@ -206,32 +208,20 @@ class GoogleLoginApi(APIView):
         state = validated_data.get("state")
 
         if error is not None:
-            return Response(
-                {"error": error},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
         if code is None or state is None:
-            return Response(
-                {"error": "Code and state are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Code and state are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         session_state = request.session.get("google_oauth2_state")
 
         if session_state is None:
-            return Response(
-                {"error": "CSRF check failed."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "CSRF check failed."}, status=status.HTTP_400_BAD_REQUEST)
 
         del request.session["google_oauth2_state"]
 
         if state != session_state:
-            return Response(
-                {"error": "CSRF check failed."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "CSRF check failed."}, status=status.HTTP_400_BAD_REQUEST)
 
         google_login_flow = GoogleRawLoginFlowService()
 
@@ -244,15 +234,12 @@ class GoogleLoginApi(APIView):
 
         user, created = CustomUser.objects.get_or_create(
             email=user_email,
-            defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")}
+            defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")},
         )
 
         CustomAuthToken.objects.create(user=user)
         if user is None:
-            return Response(
-                {"error": f"User with email {user_email} is not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": f"User with email {user_email} is not found."}, status=status.HTTP_404_NOT_FOUND)
 
         login(request, user)
 

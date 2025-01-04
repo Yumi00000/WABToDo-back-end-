@@ -295,3 +295,6 @@ CACHES = {
         "TIMEOUT": 300,
     }
 }
+
+# Pytest config
+DJANGO_SETTINGS_MODULE = "core.settings"

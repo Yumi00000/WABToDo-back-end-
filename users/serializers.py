@@ -12,7 +12,6 @@ from users.utils import PasswordValidator
 from users.models import CustomUser, Team, Chat, Participant
 
 
-
 class RegistrationSerializer(serializers.ModelSerializer, PasswordValidator):
     username = serializers.CharField(required=True, trim_whitespace=False)
     firstName = serializers.CharField(
@@ -249,9 +248,7 @@ class CreateChatSerializer(serializers.ModelSerializer):
         chat.save()
 
         # Create participants
-        participant_objects = [
-            Participant(chat=chat, user_id=participant_id) for participant_id in participants
-        ]
+        participant_objects = [Participant(chat=chat, user_id=participant_id) for participant_id in participants]
         Participant.objects.bulk_create(participant_objects)  # Efficiently create all participants
 
         # Prepare response
