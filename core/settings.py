@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django_extensions",
     "django_celery_beat",
-    # "channels_redis",
+    "channels_redis",
     "channels",
     "dj_rest_auth",
     "drf_spectacular",
@@ -66,14 +66,14 @@ SITE_ID = 1
 
 ASGI_APPLICATION = "websocket.asgi.application"
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [("0.0.0.0", 6379)],
-#         },
-#     },
-# }
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("0.0.0.0", 6379)],
+        },
+    },
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -182,7 +182,7 @@ REST_FRAMEWORK = {
         # "rest_framework.authentication.SessionAuthentication",
         "core.authentication.CustomJWTAuthentication",
     ],
-    # "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
@@ -295,6 +295,3 @@ CACHES = {
         "TIMEOUT": 300,
     }
 }
-
-# Pytest config
-DJANGO_SETTINGS_MODULE = "core.settings"
