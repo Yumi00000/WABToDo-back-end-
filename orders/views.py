@@ -55,11 +55,10 @@ class EditOrderView(generics.UpdateAPIView, GenericViewSet, OrderLoggerMixin):
             return Response(response_error_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class GetUnacceptedOrdersView(generics.ListAPIView, GenericViewSet, OrderLoggerMixin):
-    queryset = Order.objects.filter(accepted=False, status="pending").order_by("id")
-    permission_classes = [custom_perm.IsAdminOrStaff]
+class GetOrdersListView(generics.ListAPIView, GenericViewSet, OrderLoggerMixin):
+    # permission_classes = [custom_perm.IsAdminOrStaff]
     pagination_class = UnacceptedOrdersPagination
-    serializer_class = orders_serializers.UnacceptedOrderSerializer
+    serializer_class = orders_serializers.OrdersListSerializer
 
     def list(self, request, *args, **kwargs):
         self.log_unaccepted_orders(request.user)
@@ -77,6 +76,22 @@ class GetUnacceptedOrdersView(generics.ListAPIView, GenericViewSet, OrderLoggerM
             self.log_retrieving_error(request.user, str(e))
             response_error_message = {"error": "An error occurred while retrieving orders."}
             return Response(response_error_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get_queryset(self):
+        order_status = self.request.GET.get("status")
+        is_accepted = self.request.GET.get("is_accepted")
+        order_by_date = self.request.GET.get("order_by_date")
+
+        filter_kwargs = {}
+        if order_status:
+            filter_kwargs["status"] = order_status
+        if is_accepted:
+            filter_kwargs["accepted"] = is_accepted
+
+        order_by = order_by_date if order_by_date else "-created_at"
+
+        queryset = Order.objects.filter(**filter_kwargs).order_by(order_by)
+        return queryset
 
 
 class OrderManagementView(generics.UpdateAPIView, GenericViewSet, OrderLoggerMixin):

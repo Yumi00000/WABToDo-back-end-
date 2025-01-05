@@ -120,7 +120,7 @@ class UpdateOrderSerializer(OrderSerializer):
             )
 
 
-class UnacceptedOrderSerializer(OrderSerializer):
+class OrdersListSerializer(OrderSerializer):
     def to_representation(self, instance: Order):
         created_at = change_date_format(instance.created_at)
 
