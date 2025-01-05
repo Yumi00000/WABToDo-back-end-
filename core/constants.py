@@ -1,5 +1,5 @@
 ORDER_FAKE_CREATING_DATA = {
-    "id": 2,
+    "id": 1,
     "name": "TestOrderName",
     "description": (
         "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. "
