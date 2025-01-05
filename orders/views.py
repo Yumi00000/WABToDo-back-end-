@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from django.http import response as dj_res
 
 from core import permissions as custom_perm
 from orders import serializers as orders_serializers
@@ -42,11 +43,11 @@ class EditOrderView(generics.UpdateAPIView, GenericViewSet, OrderLoggerMixin):
 
         try:
             response = super().update(request, *args, **kwargs)
-            self.log_successfully_updated(request.user, request.data)
+            self.log_successfully_updated(request.user, response.data)
             return response
 
-        except serializers.ValidationError as e:
-            self.log_validation_error(e.detail)
+        except (serializers.ValidationError, dj_res.Http404) as e:
+            self.log_validation_error(e)
             raise
 
         except Exception as e:
