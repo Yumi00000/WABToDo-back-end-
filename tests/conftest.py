@@ -2,6 +2,9 @@ import pytest
 from django.conf import settings
 from rest_framework.test import APIClient
 
+from core.constants import ORDER_FAKE_CREATING_DATA
+from orders.models import Order
+from users.models import CustomAuthToken
 from users.models import CustomUser
 
 
@@ -18,34 +21,34 @@ def db_settings():
     }
 
 
-@pytest.fixture()
-def create_user(db_settings):
-    def _create_user(username="testuser", password="testpassword"):
-        return CustomUser.objects.create_user(username=username, password=password, is_active=True)
-
-    return _create_user
-
-
-@pytest.fixture()
-def get_token(create_user):
-    def _get_token(username="testuser", password="testpassword", user_agent="testagent"):
-        user = create_user(username=username, password=password)
-        client = APIClient()
-        response = client.post(
-            "/api/users/login/", {"username": username, "password": password}, HTTP_USER_AGENT=user_agent
-        )
-        assert response.status_code in [200, 201]
-        return response.data["token"], user
-
-    return _get_token
+@pytest.fixture
+def user(db) -> tuple[CustomUser, dict]:
+    credentials = {
+        "id": 1,
+        "username": "testuser",
+        "first_name": "John",
+        "last_name": "Doe",
+        "password": "testpassword",
+    }
+    user = CustomUser.objects.create_user(**credentials)
+    return user, credentials
 
 
-@pytest.fixture()
-def authorized_client(get_token):
-    def _authorized_client(username="testuser", password="testpassword"):
-        token, user = get_token(username=username, password=password)
-        client = APIClient()
-        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-        return client, user
+@pytest.fixture
+def auth_client(user) -> APIClient:
+    user, _ = user
+    token, _ = CustomAuthToken.objects.get_or_create(user=user, user_agent="TestAgent")
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.key}")
+    return client
 
-    return _authorized_client
+
+@pytest.fixture
+def unauthorized_client() -> APIClient:
+    return APIClient()
+
+
+@pytest.fixture
+def order(user: tuple[CustomUser, dict]) -> Order:
+    user, _ = user
+    return Order.objects.create(owner=user, **ORDER_FAKE_CREATING_DATA)
