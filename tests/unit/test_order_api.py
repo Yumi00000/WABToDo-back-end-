@@ -17,6 +17,7 @@ class TestOrderAPI:
         self.create_order_url = "/api/orders/create/"
         self.dashboard_url = "/api/users/dashboard/"
         self.edit_order_url = "/api/orders/edit/1/"
+        self.order_not_found_url = "/api/orders/edit/2/"
 
     def test_db(self, db, db_settings):
         assert db == db_settings
@@ -55,6 +56,18 @@ class TestOrderAPI:
     def test_create_order_with_short_data(self):
         data = {"name": "New", "description": "description", "deadline": "2025-12-12"}
         response = self.auth_client.post(self.create_order_url, data=data, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_order_not_found(self):
+        data = {"name": "NewOrderName"}
+        response = self.auth_client.patch(self.order_not_found_url, data=data, format="json")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_edit_order_bad_request(self, order):
+        data = {"myordername": "OrderNewName"}
+        response = self.auth_client.patch(self.edit_order_url, data=data, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
