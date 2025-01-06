@@ -7,11 +7,11 @@ from core.constants import ORDER_FAKE_CREATING_DATA
 class TestOrderAPI:
 
     @pytest.fixture(autouse=True)
-    def setup(self, db, user, auth_client, unauthorized_client):
+    def setup(self, db, users, auth_client, unauthorized_client):
         # Users
         self.auth_client = auth_client
         self.unauthorized_client = unauthorized_client
-        self.user = user
+        self.user, _ = users
 
         # Urls
         self.create_order_url = "/api/orders/create/"
