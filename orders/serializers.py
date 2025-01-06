@@ -73,6 +73,17 @@ class UpdateOrderSerializer(OrderSerializer):
     name = serializers.CharField(required=False)
     description = serializers.CharField(required=False)
     deadline = serializers.DateField(required=False)
+    ALLOWED_FIELDS = ["name", "description", "deadline"]
+
+    def validate(self, attrs: dict) -> dict:
+        invalid_fields = all(False if attrs.get(field) else True for field in self.ALLOWED_FIELDS)
+        if invalid_fields:
+            raise serializers.ValidationError(
+                {"details": f"The method allows only the following fields: {', '.join(self.ALLOWED_FIELDS)}."}
+            )
+        super().validate(attrs)
+
+        return attrs
 
     def update(self, instance: Order, validated_data):
         instance.name = validated_data.get("name", instance.name)
