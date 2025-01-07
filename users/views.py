@@ -24,7 +24,6 @@ class RegistrationView(generics.CreateAPIView, GenericViewSet):
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
         user = self.get_queryset().get(email=response.data["email"])
-        print(user)
         send_activation_email(request, user)
         return response
 
@@ -35,7 +34,6 @@ class ActivateView(APIView):
     def get(self, request, user_signed):
         signer = Signer()
         try:
-            print(user_signed)
             user_id = signer.unsign(user_signed)
             user = CustomUser.objects.get(id=user_id)
         except (BadSignature, CustomUser.DoesNotExist):
