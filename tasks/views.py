@@ -1,7 +1,7 @@
 from django.db.models import Q
 from django.http import response as dj_res
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics, filters, status, permissions
+from rest_framework import generics, filters, status
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -101,7 +101,7 @@ class UpdateTaskView(generics.UpdateAPIView, GenericViewSet, TaskLoggerMixin):
 
 class DeleteTaskView(generics.DestroyAPIView, GenericViewSet, TaskLoggerMixin):
     queryset = Task.objects.all()
-    permission_classes = [custom_perm.IsTeamMemberOrAdmin, permissions.IsAuthenticated]
+    permission_classes = [custom_perm.IsTeamMemberOrAdmin]
 
     def delete(self, request, *args, **kwargs):
         self.log_attempt_delete(request.user)
