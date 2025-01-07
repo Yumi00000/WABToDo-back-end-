@@ -7,9 +7,9 @@ from core.constants import ORDER_FAKE_CREATING_DATA
 class TestOrderAPI:
 
     @pytest.fixture(autouse=True)
-    def setup(self, db, users, auth_client, unauthorized_client):
+    def setup(self, db, users, auth_base_client, unauthorized_client):
         # Users
-        self.auth_client = auth_client
+        self.auth_client = auth_base_client
         self.unauthorized_client = unauthorized_client
         self.user, _ = users
 
@@ -28,7 +28,7 @@ class TestOrderAPI:
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == 1
-        assert response.data["owner"] == self.user[0].id
+        assert response.data["owner"] == self.user[3].id
         assert response.data["name"] == ORDER_FAKE_CREATING_DATA["name"]
         assert response.data["description"] == ORDER_FAKE_CREATING_DATA["description"]
         assert response.data["deadline"] == ORDER_FAKE_CREATING_DATA["deadline"]
@@ -47,6 +47,7 @@ class TestOrderAPI:
         response = self.auth_client.patch(self.edit_order_url, data=data, format="json")
 
         assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == 1
 
     def test_create_order_bad_request(self):
         response = self.auth_client.post(self.create_order_url, data={}, format="json")
