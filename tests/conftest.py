@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.conf import settings
 from rest_framework.test import APIClient
@@ -9,6 +11,7 @@ from users.models import CustomAuthToken, Team
 from users.models import CustomUser
 
 
+# --- Data base settings ---
 @pytest.fixture(scope="session")
 def db_settings():
     settings.DATABASES["default"] = {
@@ -18,6 +21,7 @@ def db_settings():
     }
 
 
+# --- Users initialization ---
 @pytest.fixture(scope="session")
 def users(django_db_setup, django_db_blocker) -> tuple[list[CustomUser], list[dict]]:
     with django_db_blocker.unblock():
@@ -48,6 +52,7 @@ def unauthorized_client() -> APIClient:
     return APIClient()
 
 
+# --- Main testing objects ---
 @pytest.fixture
 def order(users) -> Order:
     instance, _ = users
@@ -81,3 +86,10 @@ def task(users, team, order) -> Task:
         order=order,
         status="active",
     )
+
+
+# --- Fixtures for utils ---
+@pytest.fixture
+def mock_send_email_task():
+    with patch("users.tasks.send_email.delay") as mock_task:
+        yield mock_task
