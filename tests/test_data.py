@@ -1,3 +1,13 @@
+registration_credentials = {
+    "username": "TheFirstUser",
+    "firstName": "User",
+    "lastName": "NotUser",
+    "email": "theuseremail@gmail.com",
+    "phoneNumber": "+48512345678",
+    "password": "Weneedmorebananasthan1!",
+    "password2": "Weneedmorebananasthan1!",
+}
+
 user_credentials = [
     {
         "id": 1,
@@ -42,6 +52,7 @@ user_credentials = [
         "first_name": "Bob3",
         "last_name": "Doe",
         "password": "testpassword",
+        "is_active": False,
     },
 ]
 
