@@ -2,9 +2,9 @@ import pytest
 from django.conf import settings
 from rest_framework.test import APIClient
 
-from core.constants import ORDER_FAKE_CREATING_DATA
 from orders.models import Order
 from tasks.models import Task
+from tests.test_data import user_credentials, order_fake_creating_data
 from users.models import CustomAuthToken, Team
 from users.models import CustomUser
 
@@ -21,35 +21,6 @@ def db_settings():
 @pytest.fixture(scope="session")
 def users(django_db_setup, django_db_blocker) -> tuple[list[CustomUser], list[dict]]:
     with django_db_blocker.unblock():
-        user_credentials = [
-            {
-                "id": 1,
-                "username": "testuser1",
-                "first_name": "John",
-                "last_name": "Doe",
-                "password": "testpassword",
-                "is_team_member": True,
-                "is_admin": True,
-                "is_staff": True,
-            },
-            {
-                "id": 2,
-                "username": "testuser2",
-                "first_name": "Bob",
-                "last_name": "Doe",
-                "password": "testpassword",
-                "is_team_member": True,
-            },
-            {
-                "id": 3,
-                "username": "testuser3",
-                "first_name": "Mark",
-                "last_name": "Doe",
-                "password": "testpassword",
-                "is_team_member": True,
-            },
-            {"id": 4, "username": "testuser4", "first_name": "Bob2", "last_name": "Doe", "password": "testpassword"},
-        ]
         user = [CustomUser.objects.create_user(**credentials) for credentials in user_credentials]
         return user, user_credentials
 
@@ -80,7 +51,7 @@ def unauthorized_client() -> APIClient:
 @pytest.fixture
 def order(users) -> Order:
     instance, _ = users
-    return Order.objects.create(owner=instance[3], **ORDER_FAKE_CREATING_DATA)
+    return Order.objects.create(owner=instance[3], **order_fake_creating_data)
 
 
 @pytest.fixture

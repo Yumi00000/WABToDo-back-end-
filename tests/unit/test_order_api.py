@@ -1,8 +1,7 @@
 import pytest
 from rest_framework import status
 
-from core.constants import ORDER_FAKE_CREATING_DATA
-
+from tests.test_data import order_fake_creating_data
 
 class TestOrderAPI:
 
@@ -23,15 +22,15 @@ class TestOrderAPI:
         assert db == db_settings
 
     def test_create_order(self):
-        data = {**ORDER_FAKE_CREATING_DATA}
+        data = {**order_fake_creating_data}
         response = self.auth_client.post(self.create_order_url, data=data, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == 1
         assert response.data["owner"] == self.user[3].id
-        assert response.data["name"] == ORDER_FAKE_CREATING_DATA["name"]
-        assert response.data["description"] == ORDER_FAKE_CREATING_DATA["description"]
-        assert response.data["deadline"] == ORDER_FAKE_CREATING_DATA["deadline"]
+        assert response.data["name"] == order_fake_creating_data["name"]
+        assert response.data["description"] == order_fake_creating_data["description"]
+        assert response.data["deadline"] == order_fake_creating_data["deadline"]
 
     def test_get_all_user_orders(self, order):
         response = self.auth_client.get(self.dashboard_url)
@@ -73,7 +72,7 @@ class TestOrderAPI:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_unauthorized_create_order(self):
-        data = {**ORDER_FAKE_CREATING_DATA}
+        data = {**order_fake_creating_data}
         response = self.unauthorized_client.post(self.create_order_url, data=data, format="json")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -84,6 +83,6 @@ class TestOrderAPI:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_unauthorized_edit_order(self):
-        response = self.unauthorized_client.patch(self.edit_order_url, data=ORDER_FAKE_CREATING_DATA)
+        response = self.unauthorized_client.patch(self.edit_order_url, data=order_fake_creating_data)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
