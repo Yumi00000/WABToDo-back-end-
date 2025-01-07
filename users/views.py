@@ -37,7 +37,6 @@ class ActivateView(APIView):
         try:
             print(user_signed)
             user_id = signer.unsign(user_signed)
-            print(user_id)
             user = CustomUser.objects.get(id=user_id)
         except (BadSignature, CustomUser.DoesNotExist):
             return Response({"detail": "Invalid or expired link"}, status=status.HTTP_400_BAD_REQUEST)
