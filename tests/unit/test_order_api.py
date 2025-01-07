@@ -3,6 +3,7 @@ from rest_framework import status
 
 from tests.test_data import order_fake_creating_data
 
+
 class TestOrderAPI:
 
     @pytest.fixture(autouse=True)
