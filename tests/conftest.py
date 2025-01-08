@@ -91,7 +91,7 @@ def team(users, order) -> Team:
     """
     instance, _ = users
     team = Team.objects.create(id=1, leader=instance[0])
-    team.list_of_members.add(*instance[1:3])
+    team.list_of_members.add(*instance[0:3])
     team.save()
 
     order.team = team
