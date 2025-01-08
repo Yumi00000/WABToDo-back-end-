@@ -1,6 +1,7 @@
 from django.contrib.auth import login
 from django.core.signing import Signer, BadSignature
 from django.db.models import Q
+from django.http import response as dj_res
 from rest_framework import generics, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -154,6 +155,9 @@ class UpdateTeamView(generics.UpdateAPIView, GenericViewSet, TeamLoggerMixin):
             self.log_validation_error(e.detail)
             raise
 
+        except dj_res.Http404:
+            self.log_validation_error("Task not found")
+            raise
         except Exception as e:
             self.log_error_updating(str(e))
             response_error_message = {"error": "An error occurred while updating the team"}
