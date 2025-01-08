@@ -89,8 +89,12 @@ class UpdateTaskView(generics.UpdateAPIView, GenericViewSet, TaskLoggerMixin):
             self.log_successfully_updated(request.user, response.data)
             return response
 
-        except (serializers.ValidationError, dj_res.Http404) as e:
-            self.log_validation_error(e)
+        except serializers.ValidationError as e:
+            self.log_validation_error(e.detail)
+            raise
+
+        except dj_res.Http404:
+            self.log_validation_error("Task not found")
             raise
 
         except Exception as e:
