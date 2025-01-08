@@ -22,6 +22,7 @@ class TestOrderAPI:
     def test_db(self, db, db_settings):
         assert db == db_settings
 
+    # --- Successful test cases ---
     def test_create_order(self):
         data = {**order_fake_creating_data}
         response = self.auth_client.post(self.create_order_url, data=data, format="json")
@@ -49,6 +50,7 @@ class TestOrderAPI:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == 1
 
+    # --- Bad request test cases ---
     def test_create_order_bad_request(self):
         response = self.auth_client.post(self.create_order_url, data={}, format="json")
 
@@ -72,6 +74,7 @@ class TestOrderAPI:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    # --- User unauthorized test cases ---
     def test_unauthorized_create_order(self):
         data = {**order_fake_creating_data}
         response = self.unauthorized_client.post(self.create_order_url, data=data, format="json")

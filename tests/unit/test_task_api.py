@@ -21,6 +21,7 @@ class TestTaskApi:
     def test_db(self, db, db_settings):
         assert db == db_settings
 
+    # --- Successful test cases ---
     def test_create_task(self, team, order):
         data = {
             "title": "test title",
@@ -69,6 +70,7 @@ class TestTaskApi:
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
+    # --- Bad request test cases ---
     def test_create_task_bad_request(self, team):
         response = self.auth_client.post(self.create_task_url, data={}, format="json")
 
@@ -106,6 +108,7 @@ class TestTaskApi:
         assert edit_response.status_code == status.HTTP_403_FORBIDDEN
         assert delete_response.status_code == status.HTTP_403_FORBIDDEN
 
+    # --- User unauthorized test cases ---
     def test_unauthorized_get_requests(self):
         get_params = {"teamId": 1}
         get_response = self.unauthorized_client.get(self.get_tasks_url, params=get_params)

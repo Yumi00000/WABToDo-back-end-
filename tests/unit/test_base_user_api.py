@@ -12,6 +12,7 @@ class TestRegistration:
         self.client = unauthorized_client
         self.registration_url = "/api/users/registration/"
 
+    # --- Successful test cases ---
     def test_registration_sends_activation_email(self, mock_send_email_task):
         data = registration_credentials
         response = self.client.post(self.registration_url, data=data, format="json")
@@ -32,6 +33,7 @@ class TestRegistration:
         expected_signed_id = signer.sign(user.id)
         assert expected_signed_id in signed_url
 
+    # --- Bad request test cases ---
     def test_registration_bad_request(self):
         data = registration_credentials
         data["password"] = None
@@ -112,6 +114,7 @@ class TestLogin:
 
         self.login_url = "/api/users/login/"
 
+    # --- Successful test cases ---
     def test_login(self, users):
         data = {"username": "testuser1", "password": "testpassword"}
         user = CustomUser.objects.get(username=data["username"])
@@ -123,6 +126,7 @@ class TestLogin:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["token"] == token.key
 
+    # --- Bad request test cases ---
     def test_login_invalid_credentials(self, users):
         data = {"username": "user1", "password": "testpassword"}
         response = self.client.post(self.login_url, data=data, format="json")
