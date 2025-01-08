@@ -185,9 +185,7 @@ class TeamView(generics.RetrieveAPIView, GenericViewSet, TeamLoggerMixin):
 
 class CreateChatView(generics.CreateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [
-        permissions.IsAuthenticated,
-    ]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = user_serializers.CreateChatSerializer
 
 
