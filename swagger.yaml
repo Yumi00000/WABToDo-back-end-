@@ -39,7 +39,7 @@ paths:
                 - firstName
                 - lastName
                 - email
-                - password1
+                - password
                 - password2
 
               example:
@@ -49,8 +49,8 @@ paths:
                   lastName: NotUser,
                   email: theuseremail@gmail.com,
                   phoneNumber: "+1234567890",
-                  password1: userpassword,
-                  password2: userpassword,
+                  password: Weneedmorebananasthan1!,
+                  password2: Weneedmorebananasthan1!,
                 }
 
       responses:

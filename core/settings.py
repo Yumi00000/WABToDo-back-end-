@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import logging
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -182,7 +183,7 @@ REST_FRAMEWORK = {
         # "rest_framework.authentication.SessionAuthentication",
         "core.authentication.CustomJWTAuthentication",
     ],
-    # "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
@@ -287,11 +288,23 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
+logger = logging.getLogger(__name__)
 # Cache
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://redis:6379/1",
-        "TIMEOUT": 300,
+if "TESTING" in os.environ:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+            "LOCATION": "redis://redis:6379/1",
+            "TIMEOUT": 300,
+        }
     }
-}
+    logger.info("Using dummy cache for testing.")
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": "redis://redis:6379/1",
+            "TIMEOUT": 300,
+        }
+    }
+    logger.info("Using Redis cache for production.")

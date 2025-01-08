@@ -1,6 +1,7 @@
 from django.contrib.auth import login
 from django.core.signing import Signer, BadSignature
 from django.db.models import Q
+from django.http import response as dj_res
 from rest_framework import generics, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -24,7 +25,6 @@ class RegistrationView(generics.CreateAPIView, GenericViewSet):
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
         user = self.get_queryset().get(email=response.data["email"])
-        print(user)
         send_activation_email(request, user)
         return response
 
@@ -35,9 +35,7 @@ class ActivateView(APIView):
     def get(self, request, user_signed):
         signer = Signer()
         try:
-            print(user_signed)
             user_id = signer.unsign(user_signed)
-            print(user_id)
             user = CustomUser.objects.get(id=user_id)
         except (BadSignature, CustomUser.DoesNotExist):
             return Response({"detail": "Invalid or expired link"}, status=status.HTTP_400_BAD_REQUEST)
@@ -77,7 +75,7 @@ class DashboardView(generics.ListAPIView, GenericViewSet, UserLoggerMixin):
         team_orders = Q(team__list_of_members=user)
         queryset = Order.objects.filter(owner_orders | team_orders).distinct()
 
-        return queryset
+        return queryset.order_by("created_at")
 
     def list(self, request, *args, **kwargs):
         self.log_attempt_retrieve_dashboard()
@@ -157,6 +155,9 @@ class UpdateTeamView(generics.UpdateAPIView, GenericViewSet, TeamLoggerMixin):
             self.log_validation_error(e.detail)
             raise
 
+        except dj_res.Http404:
+            self.log_validation_error("Task not found")
+            raise
         except Exception as e:
             self.log_error_updating(str(e))
             response_error_message = {"error": "An error occurred while updating the team"}
@@ -188,7 +189,7 @@ class TeamView(generics.RetrieveAPIView, GenericViewSet, TeamLoggerMixin):
 
 class CreateChatView(generics.CreateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = user_serializers.CreateChatSerializer
 
 
@@ -206,32 +207,20 @@ class GoogleLoginApi(APIView):
         state = validated_data.get("state")
 
         if error is not None:
-            return Response(
-                {"error": error},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
         if code is None or state is None:
-            return Response(
-                {"error": "Code and state are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Code and state are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         session_state = request.session.get("google_oauth2_state")
 
         if session_state is None:
-            return Response(
-                {"error": "CSRF check failed."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "CSRF check failed."}, status=status.HTTP_400_BAD_REQUEST)
 
         del request.session["google_oauth2_state"]
 
         if state != session_state:
-            return Response(
-                {"error": "CSRF check failed."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "CSRF check failed."}, status=status.HTTP_400_BAD_REQUEST)
 
         google_login_flow = GoogleRawLoginFlowService()
 
@@ -244,15 +233,12 @@ class GoogleLoginApi(APIView):
 
         user, created = CustomUser.objects.get_or_create(
             email=user_email,
-            defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")}
+            defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")},
         )
 
         CustomAuthToken.objects.create(user=user)
         if user is None:
-            return Response(
-                {"error": f"User with email {user_email} is not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": f"User with email {user_email} is not found."}, status=status.HTTP_404_NOT_FOUND)
 
         login(request, user)
 
