@@ -236,15 +236,12 @@ class GoogleLoginApi(APIView):
             defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")},
         )
 
-        CustomAuthToken.objects.create(user=user)
+        token = CustomAuthToken.objects.filter(user=user).first()
         if user is None:
             return Response({"error": f"User with email {user_email} is not found."}, status=status.HTTP_404_NOT_FOUND)
 
         login(request, user)
 
-        result = {
-            "id_token_decoded": id_token_decoded,
-            "user_info": user_info,
-        }
+        result = {"id_token_decoded": id_token_decoded, "user_info": user_info, "token": token.key}
 
         return Response(result)

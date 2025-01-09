@@ -80,7 +80,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -180,7 +180,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # RDF configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        # "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
         "core.authentication.CustomJWTAuthentication",
     ],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
@@ -271,25 +271,8 @@ REST_AUTH = {
     "SESSION_LOGIN": True,
 }
 
-# Swagger rendering config
-SPECTACULAR_SETTINGS = {
-    "TITLE": "API Documentation",
-    "DESCRIPTION": "API Description",
-    "VERSION": "1.0.0",
-    "SECURITY": [
-        {"bearerAuth": []},
-    ],
-    "SECURITY_DEFINITIONS": {
-        "bearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
-        }
-    },
-}
-
-logger = logging.getLogger(__name__)
 # Cache
+logger = logging.getLogger(__name__)
 if "TESTING" in os.environ:
     CACHES = {
         "default": {
