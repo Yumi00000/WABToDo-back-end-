@@ -12,7 +12,7 @@ from core.service import GoogleRawLoginFlowService
 from orders.models import Order
 from users import serializers as user_serializers
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
-from users.models import CustomAuthToken, Team, Chat, CustomUser
+from users.models import Team, Chat, CustomUser
 from users.paginations import DashboardPagination
 from users.utils import send_activation_email, TokenManager
 
@@ -193,10 +193,11 @@ class CreateChatView(generics.CreateAPIView, GenericViewSet):
     serializer_class = user_serializers.CreateChatSerializer
 
 
-class GoogleLoginApi(APIView):
+class GoogleLoginApi(APIView, TokenManager):
     serializer_class = user_serializers.InputSerializer
 
     def get(self, request, *args, **kwargs):
+        user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
         input_serializer = self.serializer_class(data=request.GET)
         input_serializer.is_valid(raise_exception=True)
 
@@ -208,12 +209,10 @@ class GoogleLoginApi(APIView):
 
         if error is not None:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
-
         if code is None or state is None:
             return Response({"error": "Code and state are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         session_state = request.session.get("google_oauth2_state")
-
         if session_state is None:
             return Response({"error": "CSRF check failed."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -230,18 +229,20 @@ class GoogleLoginApi(APIView):
         user_info = google_login_flow.get_user_info(google_tokens=google_tokens)
 
         user_email = id_token_decoded["email"]
-
         user, created = CustomUser.objects.get_or_create(
             email=user_email,
             defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")},
         )
 
-        token = CustomAuthToken.objects.filter(user=user).first()
         if user is None:
             return Response({"error": f"User with email {user_email} is not found."}, status=status.HTTP_404_NOT_FOUND)
 
         login(request, user)
 
+        token, created = self.get_or_create_token(user, user_agent)
         result = {"id_token_decoded": id_token_decoded, "user_info": user_info, "token": token.key}
 
-        return Response(result)
+        return Response(
+            result,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
