@@ -11,16 +11,6 @@ from users.models import CustomAuthToken, Team
 from users.models import CustomUser
 
 
-# --- Data base settings ---
-@pytest.fixture(scope="session")
-def db_settings():
-    settings.DATABASES["default"] = {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": ":memory:",
-        "ATOMIC_REQUESTS": True,
-    }
-
-
 # --- Users initialization ---
 @pytest.fixture(scope="session")
 def users(django_db_setup, django_db_blocker) -> tuple[list[CustomUser], list[dict]]:
