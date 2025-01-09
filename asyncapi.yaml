@@ -1,0 +1,291 @@
+asyncapi: '2.0.0'
+info:
+  title: Django WebSocket Application
+  version: '1.0.0'
+  description: >
+    This AsyncAPI document describes the WebSocket communication features for the Django WebSocket application.
+  contact:
+    name: Development Team
+    email: devteam@example.com
+
+servers:
+  production:
+    url: wss://example.com/ws
+    protocol: wss
+    description: WebSocket production server
+
+  development:
+    url: ws://localhost:8000/ws
+    protocol: ws
+    description: WebSocket development server
+
+channels:
+  /ws/comnt/{pk}/:
+    description: Channel for managing comment-related WebSocket communication.
+    parameters:
+      pk:
+        description: Primary key for identifying a specific comment group.
+        schema:
+          type: integer
+    subscribe:
+      summary: Actions performed on the comments WebSocket.
+      message:
+        oneOf:
+          - $ref: "#/components/messages/CreateComment"
+          - $ref: "#/components/messages/UpdateComment"
+          - $ref: "#/components/messages/DeleteComment"
+          - $ref: "#/components/messages/GetNextBatchComments"
+    publish:
+      summary: Comment data sent back to subscribers.
+      message:
+        $ref: "#/components/messages/CommentResponse"
+
+  /ws/notify/{pk}/:
+    description: Channel for user-focused notification management.
+    parameters:
+      pk:
+        description: Primary key identifying the user for notifications.
+        schema:
+          type: integer
+    subscribe:
+      summary: Notification actions handled through WebSocket.
+      message:
+        oneOf:
+          - $ref: "#/components/messages/CreateNotification"
+          - $ref: "#/components/messages/DeleteNotification"
+          - $ref: "#/components/messages/GetNextBatchNotifications"
+    publish:
+      summary: Notification updates sent to subscribers.
+      message:
+        $ref: "#/components/messages/NotificationResponse"
+
+  /ws/chat/{pk}/:
+    description: WebSocket channel for chat room operations.
+    parameters:
+      pk:
+        description: Chat room identifier.
+        schema:
+          type: integer
+    subscribe:
+      summary: Chat actions performed in the WebSocket.
+      message:
+        oneOf:
+          - $ref: "#/components/messages/CreateMessage"
+          - $ref: "#/components/messages/UpdateMessage"
+          - $ref: "#/components/messages/DeleteMessage"
+          - $ref: "#/components/messages/GetNextBatchMessages"
+    publish:
+      summary: Chat messages sent back to clients.
+      message:
+        $ref: "#/components/messages/MessageResponse"
+components:
+  messages:
+    CreateComment:
+      summary: Create a new comment
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [create]
+            example: create
+          content:
+            type: string
+            description: The content of the comment
+          task_id:
+            type: integer
+            description: Associated task ID
+
+    UpdateComment:
+      summary: Update an existing comment
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [update]
+            example: update
+          pk:
+            type: integer
+            description: Comment ID
+          content:
+            type: string
+            description: Updated content
+
+    DeleteComment:
+      summary: Delete a comment by ID
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [delete]
+            example: delete
+          pk:
+            type: integer
+            description: Comment ID
+
+    GetNextBatchComments:
+      summary: Get the next batch of comments
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [get_next_batch]
+            example: get_next_batch
+          last_item_id:
+            type: integer
+            description: ID of the last fetched comment
+
+    CommentResponse:
+      summary: Comment-related message response to clients
+      payload:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: [send_comment]
+            example: send_comment
+          username:
+            type: string
+            description: User authoring the comment
+          comment:
+            type: object
+            description: Serialized comment data
+          task_id:
+            type: integer
+            description: Associated task ID
+
+    CreateNotification:
+      summary: Create a new notification
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [create]
+            example: create
+          content:
+            type: string
+            description: Notification content
+
+    DeleteNotification:
+      summary: Delete a notification by ID
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [delete]
+            example: delete
+          notifications_ids:
+            type: array
+            items:
+              type: integer
+            description: List of notification IDs to delete
+
+    GetNextBatchNotifications:
+      summary: Get the next batch of notifications
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [get_next_batch]
+            example: get_next_batch
+          last_item_id:
+            type: integer
+            description: ID of the last fetched notification
+
+    NotificationResponse:
+      summary: Notification-related message response to clients
+      payload:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: [send_notification]
+            example: send_notification
+          username:
+            type: string
+          notification:
+            type: object
+            description: Serialized notification data
+
+    CreateMessage:
+      summary: Create a new chat message
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [create]
+            example: create
+          chat_id:
+            type: integer
+            description: Chat room ID
+          content:
+            type: string
+            description: Message content
+
+    UpdateMessage:
+      summary: Update an existing chat message
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [update]
+            example: update
+          pk:
+            type: integer
+            description: Message ID
+          content:
+            type: string
+            description: Updated content
+
+    DeleteMessage:
+      summary: Delete a message by ID
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [delete]
+            example: delete
+          pk:
+            type: integer
+            description: Message ID
+
+    GetNextBatchMessages:
+      summary: Get the next batch of messages
+      payload:
+        type: object
+        properties:
+          action:
+            type: string
+            enum: [get_next_batch]
+            example: get_next_batch
+          last_item_id:
+            type: integer
+            description: ID of the last fetched message
+
+    MessageResponse:
+      summary: Chat-related WebSocket message response
+      payload:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: [send_message]
+            example: send_message
+          username:
+            type: string
+            description: Sender's username
+          chat_id:
+            type: integer
+            description: Chat room ID
+          message:
+            type: object
+            description: Serialized message data
