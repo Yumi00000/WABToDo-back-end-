@@ -121,6 +121,58 @@ class LoginSerializer(serializers.Serializer):
         return data
 
 
+class EditUserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField()
+    email = serializers.EmailField()
+    firstName = serializers.CharField(
+        source="first_name",
+    )
+    lastName = serializers.CharField(
+        source="last_name",
+    )
+    phoneNumber = serializers.CharField(
+        source="phone_number",
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ["username", "email", "firstName", "lastName", "phoneNumber"]
+
+    def validate(self, data: dict) -> dict:
+        username = data.get("username")
+        email = data.get("email")
+        phoneNumber = data.get("phone_number")
+        if CustomUser.objects.filter(username=username).exists():
+            raise serializers.ValidationError("Username already exists.")
+
+        if CustomUser.objects.filter(email=email).exists():
+            raise serializers.ValidationError("Email already exists.")
+
+        if phoneNumber:
+            data["phoneNumber"] = self.validate_phone_number(phoneNumber)
+
+        return data
+
+    @staticmethod
+    def validate_phone_number(phone_number: str) -> str | None:
+        try:
+            parsed = phonenumbers.parse(phone_number, None)
+            if not phonenumbers.is_valid_number(parsed):
+                raise serializers.ValidationError("Invalid phone number.")
+            return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+        except phonenumbers.NumberParseException:
+            raise serializers.ValidationError("Invalid phone number format.")
+
+    def update(self, instance, validated_data):
+        instance.username = validated_data.get("username", instance.username)
+        instance.email = validated_data.get("email", instance.email)
+        instance.first_name = validated_data.get("first_name", instance.first_name)
+        instance.last_name = validated_data.get("last_name", instance.last_name)
+        instance.phone_number = validated_data.get("phone_number", instance.phone_number)
+        instance.save()
+        return instance
+
+
 class DashboardSerializer(OrderSerializer):
 
     def to_representation(self, instance: Order) -> dict:
@@ -223,17 +275,24 @@ class UpdateTeamSerializer(TeamSerializer):
         return TeamSerializer(instance).data
 
 
-class CreateChatSerializer(serializers.ModelSerializer):
+class ChatSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)
     is_group = serializers.BooleanField(default=False)
     chat_id = serializers.IntegerField(required=False)
-    participants = serializers.JSONField()
+    participants = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
         fields = ["name", "chat_id", "is_group", "participants"]
         read_only_fields = ["created_at"]
 
+    def get_participants(self, obj):
+        participants = obj.participants.all()  # Access participants through the related Manager
+        # Serialize the related objects into a list of dictionaries
+        return [{"id": participant.user.id, "username": participant.user.username} for participant in participants]
+
+
+class CreateChatSerializer(ChatSerializer):
     def validate(self, attrs: dict) -> dict:
         if attrs.get("is_group") == False and len(attrs.get("participants", [])) > 1:
             raise serializers.ValidationError("You can't add more than one participant to your chat.")
@@ -251,6 +310,9 @@ class CreateChatSerializer(serializers.ModelSerializer):
         participant_objects = [Participant(chat=chat, user_id=participant_id) for participant_id in participants]
         Participant.objects.bulk_create(participant_objects)  # Efficiently create all participants
 
+        owner = Participant.objects.get(chat=chat, user=self.context["request"].user)
+        owner.role = "admin"
+        owner.save()
         # Prepare response
         response = {
             "name": chat.name,
@@ -262,6 +324,58 @@ class CreateChatSerializer(serializers.ModelSerializer):
         }
 
         return response
+
+
+class UpdateChatSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(required=False)
+    is_group = serializers.BooleanField(default=False)
+    chat_id = serializers.IntegerField(required=False)
+    participants = serializers.JSONField(required=False)
+
+    class Meta:
+        model = Chat
+        fields = ["name", "is_group", "chat_id", "participants"]
+
+    def update(self, instance, validated_data):
+        request = self.context["request"]
+        action = request.data.get("action")
+
+        if action == "update":
+            instance.name = validated_data.get("name", instance.name)
+            if instance.is_group:
+                new_participants = validated_data.get("participants", [])
+                if new_participants:
+                    current_participants = Participant.objects.filter(chat=instance)
+                    current_participant_ids = {participant.user.id for participant in current_participants}
+
+                    new_participant_ids = set(new_participants)
+                    participants_to_add = new_participant_ids - current_participant_ids
+                    participants_to_remove = current_participant_ids - new_participant_ids
+
+                    if participants_to_add:
+                        users_to_add = CustomUser.objects.filter(id__in=participants_to_add)
+                        Participant.objects.bulk_create(
+                            [Participant(chat=instance, user=user) for user in users_to_add]
+                        )
+
+                    if participants_to_remove:
+                        Participant.objects.filter(chat=instance, user_id__in=participants_to_remove).delete()
+
+            instance.save()
+
+            return {
+                "id": instance.id,
+                "name": instance.name,
+                "is_group": instance.is_group,
+                "participants": list(Participant.objects.filter(chat=instance).values("user__id", "user__username")),
+            }
+
+        elif action == "delete":
+            instance.delete()
+            return {"detail": "Chat successfully deleted."}
+
+        # If action is invalid
+        raise serializers.ValidationError({"detail": "Invalid action provided."})
 
 
 class InputSerializer(serializers.Serializer):

@@ -73,7 +73,7 @@ class Participant(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.user.username
+        return f"{self.user.username}"
 
 
 class Chat(models.Model):
@@ -82,4 +82,4 @@ class Chat(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.name}"

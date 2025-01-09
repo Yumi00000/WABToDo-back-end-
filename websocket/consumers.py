@@ -19,40 +19,69 @@ from websocket.serializers import (
 logger = logging.getLogger(__name__)
 
 
+@sync_to_async
+def get_username(user_pk):
+    return CustomUser.objects.get(id=user_pk).username
+
+
+@sync_to_async
+def get_recipients_emails(recipients_pk):
+    return [CustomUser.objects.get(id=recipient_pk).email for recipient_pk in recipients_pk]
+
+
 class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.headers = {}
         self.group_name = None
+        self.instance = None
+        self.instance_serializer = None
+        self.type = None
+        self.pk = None
+        self.filter = ""
+        self.batch_size = 50
 
     async def connect(self):
         self.headers = self.scope.get("headers", [])
-        logger.info("WebSocket connected")
+        self.pk = self.scope["url_route"]["kwargs"]["pk"]
+        self.group_name = f"{self.group_name}_{self.pk}"
+
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
+        await self.send_existing_content(self.pk)
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
         await self.close()
         logger.info("WebSocket disconnected")
 
+    async def send_existing_content(self, pk, last_item_id=None):
+        from core.tasks import send_chunked_data
 
-@sync_to_async
-def get_username(user_pk):
-    db_response = CustomUser.objects.get(id=user_pk).username
-    return db_response
+        filter_kwargs = {f"{self.filter}": pk}
+        if last_item_id:
+            filter_kwargs["id__lt"] = last_item_id  # Fetch items with IDs greater than the last sent
 
+        send_chunked_data.delay(
+            group_name=self.group_name,
+            instance_model=self.instance.__name__,  # Send model name as string
+            instance_serializer_class=self.instance_serializer.__name__,  # Send serializer name as string
+            filter_kwargs=filter_kwargs,
+            batch_size=self.batch_size,
+        )
 
-@sync_to_async
-def get_recipients_emails(recipients_pk):
-    emails = [CustomUser.objects.get(id=recipient_pk).email for recipient_pk in recipients_pk]
-    return emails
+    async def send_data_chunk(self, event):
+        await self.send(text_data=event["message"])
 
 
 class CommentConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.group_name = "comments_room"
+        self.group_name = "comments"
+        self.instance = Comment
+        self.type = "send_comment"
+        self.instance_serializer = CommentSerializer
+        self.filter = "task_id"
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
@@ -68,6 +97,9 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
             await self.handle_update(data)
         if action == "delete":
             await self.handle_delete(data)
+        if action == "get_next_batch":
+            last_item_id = data["last_item_id"]
+            await self.send_existing_content(self.pk, last_item_id)
 
     async def handle_create(self, data):
         serializer = CommentSerializer(data=data)
@@ -170,7 +202,11 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
 class NotificationConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.group_name = "notifications_room"
+        self.group_name = "notifications"
+        self.instance = Notification
+        self.type = "send_notification"
+        self.instance_serializer = NotificationSerializer
+        self.filter = "user_id"
 
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
@@ -179,6 +215,9 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
             await self.handle_create(data)
         if action == "delete":
             await self.handle_delete(data)
+        if action == "get_next_batch":
+            last_item_id = data["last_item_id"]
+            await self.send_existing_content(self.pk, last_item_id)
 
     async def handle_create(self, data):
         logger.debug(f"Received data: {data}")
@@ -191,7 +230,7 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
             return
 
         validated_data = serializer.validated_data
-        user_id = validated_data["user_id"]
+        user_id = self.pk
         content = validated_data["content"]
 
         notification = await sync_to_async(Notification.objects.create)(user_id=user_id, content=content)
@@ -264,7 +303,11 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
 class MessageConsumer(BaseAsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.group_name = "messages_room"
+        self.group_name = "chat"
+        self.instance = Message
+        self.type = "send_message"
+        self.instance_serializer = MessageSerializer
+        self.filter = "chat_id"
 
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
@@ -272,10 +315,13 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
         action = data.get("action")
         if action == "create":
             await self.handle_create(data)
-        if action == "update":
+        elif action == "update":
             await self.handle_update(data)
-        if action == "delete":
+        elif action == "delete":
             await self.handle_delete(data)
+        if action == "get_next_batch":
+            last_item_id = data["last_item_id"]
+            await self.send_existing_content(self.pk, last_item_id)
 
     async def handle_create(self, data):
         serializer = MessageSerializer(data=data)
@@ -385,6 +431,7 @@ class MessageConsumer(BaseAsyncWebsocketConsumer):
             return
 
     async def send_message(self, event):
+
         await self.send(
             text_data=json.dumps(
                 event,

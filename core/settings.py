@@ -116,7 +116,7 @@ if os.getenv("DOCKERIZED", False):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql_psycopg2",
-            "NAME": os.getenv("POSTGRES_DB", "mock-db"),
+            "NAME": os.getenv("POSTGRES_DB"),
             "USER": "postgres",
             "PASSWORD": config("POSTGRES_PASSWORD"),
             "HOST": "db",
@@ -227,6 +227,9 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
 CELERY_TASK_BACKEND = "rpc://"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+CELERY_IMPORTS = ["core.tasks"]
+
 
 # SocialAccount configuration
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True

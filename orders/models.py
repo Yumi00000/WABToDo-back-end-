@@ -1,6 +1,6 @@
-from core import settings
 from django.db import models
 
+from core import settings
 from users.models import Team
 
 
@@ -22,6 +22,7 @@ class Order(models.Model):
     updated_at = models.DateTimeField(null=True, blank=True)
     accepted_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.PENDING)
+    on_delete_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Order name: {self.name}"

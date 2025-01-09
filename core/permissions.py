@@ -1,7 +1,7 @@
 from django.db.models import Q
 from rest_framework import permissions
 
-from users.models import Team
+from users.models import Team, Participant, CustomAuthToken
 
 
 class IsOrderOwnerOrAdmin(permissions.BasePermission):
@@ -38,3 +38,50 @@ class IsTeamMemberOrAdmin(permissions.BasePermission):
 
         user_team_exist = Team.objects.filter(Q(list_of_members=request.user) | Q(leader=request.user)).exists()
         return bool(request.user and (request.user.is_staff or request.user.is_admin or user_team_exist))
+
+
+class IsChatParticipant(permissions.BasePermission):
+    """
+    Custom permission to allow only chat participants.
+    """
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        chat_id = view.kwargs.get("pk")
+        if Participant.objects.filter(user=request.user, chat_id=chat_id).exists():
+            return True
+
+
+class IsChatAdmin(permissions.BasePermission):
+    """
+    Custom permission to allow only chat admins.
+    """
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        chat_id = view.kwargs.get("pk")
+        if chat_id and Participant.objects.filter(Q(user=request.user) & Q(chat_id=chat_id) & Q(role="admin")).exists():
+            return True
+
+        return False
+
+
+class IsAccountOwner(permissions.BasePermission):
+    """
+    Custom permission to allow only account owners.
+    """
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        header = request.META.get("HTTP_AUTHORIZATION")
+        key = header.split()[1]
+
+        if CustomAuthToken.objects.filter(key=key, user_id=view.kwargs.get("pk")).exists():
+            return True
+
+        return False

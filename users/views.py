@@ -1,5 +1,10 @@
+
+from autobahn.util import generate_user_password
+
+
 from django.contrib.auth import login
 from django.core.signing import Signer, BadSignature
+
 from django.db.models import Q
 from django.http import response as dj_res
 from rest_framework import generics, permissions, status, serializers
@@ -10,9 +15,15 @@ from rest_framework.viewsets import GenericViewSet
 from core import permissions as c_prm
 from core.service import GoogleRawLoginFlowService
 from orders.models import Order
+
+from users.mixins import UserLoggerMixin, TeamLoggerMixin
+from users.models import Chat, CustomUser, Participant
+from users.models import CustomAuthToken, Team
+
 from users import serializers as user_serializers
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
 from users.models import Team, Chat, CustomUser
+
 from users.paginations import DashboardPagination
 from users.utils import send_activation_email, TokenManager
 
@@ -62,6 +73,11 @@ class LoginView(APIView, TokenManager):
             {"token": token.key},
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
+
+class EditUserView(generics.RetrieveUpdateAPIView, GenericViewSet):
+    queryset = CustomUser.objects.all()
+    permission_classes = [c_prm.IsAccountOwner]
+    serializer_class = user_serializers.EditUserSerializer
 
 
 class DashboardView(generics.ListAPIView, GenericViewSet, UserLoggerMixin):
@@ -189,11 +205,50 @@ class TeamView(generics.RetrieveAPIView, GenericViewSet, TeamLoggerMixin):
 
 class CreateChatView(generics.CreateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, ]
     serializer_class = user_serializers.CreateChatSerializer
 
 
+class EditChatView(generics.UpdateAPIView, GenericViewSet):
+    queryset = Chat.objects.all()
+    permission_classes = [c_prm.IsChatAdmin,
+    serializer_class = user_serializers.UpdateChatSerializer
+
+
+class ChatView(generics.RetrieveAPIView, GenericViewSet):
+    queryset = Chat.objects.all()
+    permission_classes = [c_prm.IsChatParticipant]
+    serializer_class = user_serializers.ChatSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            response = super().get(request, *args, **kwargs)
+            return response.data
+
+        except Exception as e:
+            response_error_message = {"error": "An error occurred while retrieving the chat details"}
+            return Response(response_error_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ChatListView(generics.ListAPIView, GenericViewSet):
+    queryset = Chat.objects.all()
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+    serializer_class = user_serializers.ChatSerializer
+
+    def get_queryset(self):
+        headers = self.request.META.get("HTTP_AUTHORIZATION")
+        token = headers.split("Bearer ")[1]
+        user_id = CustomAuthToken.objects.get(key=token).user_id
+        # Filter chats by participants through the related name 'participants'
+        chat_ids = Participant.objects.filter(user_id=user_id).values_list("chat_id", flat=True)
+        return Chat.objects.filter(id__in=chat_ids)
+
+
+
 class GoogleLoginApi(APIView, TokenManager):
+
     serializer_class = user_serializers.InputSerializer
 
     def get(self, request, *args, **kwargs):
@@ -209,6 +264,7 @@ class GoogleLoginApi(APIView, TokenManager):
 
         if error is not None:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
         if code is None or state is None:
             return Response({"error": "Code and state are required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -229,10 +285,20 @@ class GoogleLoginApi(APIView, TokenManager):
         user_info = google_login_flow.get_user_info(google_tokens=google_tokens)
 
         user_email = id_token_decoded["email"]
+
+        password = generate_user_password()
+
         user, created = CustomUser.objects.get_or_create(
             email=user_email,
             defaults={"username": id_token_decoded.get("name"), "google_id": id_token_decoded.get("sub")},
         )
+        if user:
+            user.google_id = id_token_decoded.get("sub")
+            user.save()
+        if created:
+            user.set_password(password)
+            CustomAuthToken.objects.create(user=user)
+            user.save()
 
         if user is None:
             return Response({"error": f"User with email {user_email} is not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -245,4 +311,4 @@ class GoogleLoginApi(APIView, TokenManager):
         return Response(
             result,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-        )
+

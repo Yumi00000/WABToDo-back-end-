@@ -1,12 +1,11 @@
 from rest_framework import serializers
 
-from users.models import Chat, Participant
 from websocket.models import Comment, Notification, Message
 
 
 class CommentSerializer(serializers.ModelSerializer):
     content = serializers.JSONField()
-    member_id = serializers.IntegerField(write_only=True)
+    member_id = serializers.IntegerField(required=False)
     task_id = serializers.IntegerField(write_only=True)
 
     class Meta:
@@ -37,12 +36,14 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    pk = serializers.IntegerField(read_only=True)
     chat_id = serializers.IntegerField(write_only=True)
     content = serializers.JSONField()
+    sender_id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Message
-        fields = ["chat_id", "content", "created_at"]
+        fields = ["chat_id", "content", "created_at", "sender_id", "pk"]
         read_only_fields = ["created_at"]
 
 
@@ -56,3 +57,15 @@ class UpdateMessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ["pk", "chat_id", "sender_id", "content", "updated_at"]
         read_only_fields = ["updated_at"]
+
+
+def get_serializer(serializer_label):
+    serializers = {
+        "CommentSerializer": CommentSerializer,
+        "NotificationSerializer": NotificationSerializer,
+        "MessageSerializer": MessageSerializer,
+        "UpdateMessageSerializer": UpdateMessageSerializer,
+        "UpdateCommentSerializer": UpdateCommentSerializer,
+    }
+    serializer = serializers[serializer_label]
+    return serializer
