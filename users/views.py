@@ -1,10 +1,7 @@
 
 from autobahn.util import generate_user_password
-
-
 from django.contrib.auth import login
 from django.core.signing import Signer, BadSignature
-
 from django.db.models import Q
 from django.http import response as dj_res
 from rest_framework import generics, permissions, status, serializers
@@ -15,15 +12,11 @@ from rest_framework.viewsets import GenericViewSet
 from core import permissions as c_prm
 from core.service import GoogleRawLoginFlowService
 from orders.models import Order
-
-from users.mixins import UserLoggerMixin, TeamLoggerMixin
-from users.models import Chat, CustomUser, Participant
-from users.models import CustomAuthToken, Team
-
 from users import serializers as user_serializers
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
+from users.models import CustomAuthToken
+from users.models import Participant
 from users.models import Team, Chat, CustomUser
-
 from users.paginations import DashboardPagination
 from users.utils import send_activation_email, TokenManager
 
@@ -211,7 +204,7 @@ class CreateChatView(generics.CreateAPIView, GenericViewSet):
 
 class EditChatView(generics.UpdateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [c_prm.IsChatAdmin,
+    permission_classes = [c_prm.IsChatAdmin,]
     serializer_class = user_serializers.UpdateChatSerializer
 
 
@@ -310,5 +303,5 @@ class GoogleLoginApi(APIView, TokenManager):
 
         return Response(
             result,
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,)
 
