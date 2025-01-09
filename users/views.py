@@ -100,6 +100,9 @@ class LoginView(APIView, TokenManager):
         user = serializer.validated_data["user"]
         token, created = self.get_or_create_token(user, user_agent)
 
+        if not user.is_active:
+            send_activation_email(request, user)
+
         return Response(
             {"token": token.key},
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
@@ -257,7 +260,32 @@ class TeamsCreateView(generics.CreateAPIView, GenericViewSet, TeamLoggerMixin):
             self.log_error_creating(str(e))
             response_error_message = {"error": "An error occurred while creating new team"}
             return Response(response_error_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+class LogoutView(APIView):
+    """
+    Handles user logout and deactivation.
 
+    This class deactivates the logged-in user's account by setting the
+    `is_active` field to `False` and removes their authentication token.
+    Only authenticated users can access this endpoint.
+
+    Attributes:
+        permission_classes (list): Specifies the permissions allowing only
+            authenticated users to log out.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        user.is_active = False
+        user.save()
+
+        # Delete user's authentication token
+        CustomAuthToken.objects.filter(user=user).delete()
+
+        return Response(
+            {"detail": "User has been logged out and deactivated."},
+            status=status.HTTP_200_OK,
+        )
 
 class UpdateTeamView(generics.UpdateAPIView, GenericViewSet, TeamLoggerMixin):
     """
