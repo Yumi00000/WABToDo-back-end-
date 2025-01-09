@@ -18,9 +18,6 @@ class TestTaskApi:
         self.task_not_found_url = f"/api/tasks/edit/2/"
         self.delete_task_url = f"/api/tasks/delete/1/"
 
-    def test_db(self, db, db_settings):
-        assert db == db_settings
-
     # --- Successful test cases ---
     def test_create_task(self, team, order):
         data = {

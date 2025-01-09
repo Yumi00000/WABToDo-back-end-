@@ -22,9 +22,6 @@ class TestTeamApi:
         self.edit_team_url = "/api/users/team/edit/1/"
         self.edit_team_not_found_url = "/api/users/team/edit/2/"
 
-    def test_db(self, db, db_settings):
-        assert db == db_settings
-
     # --- Successful test cases ---
     def test_get_all_teams(self, team):
         response = self.staff_client.get(self.get_all_teams_url)
