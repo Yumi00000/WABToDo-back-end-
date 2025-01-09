@@ -375,64 +375,120 @@ paths:
   /api/orders/management/:
     get:
       summary: Get list of incoming orders
-      description: The list used by the platform administration to accept orders and assign the team that will fulfill the order
+      description: Retrieve a paginated list of unaccepted orders based on filtering and sorting criteria.
       parameters:
         - in: header
           name: Authorization
           required: true
           schema:
             type: string
-          description: Bearer token for authentication
+          description: Bearer token for authentication.
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+          description: Filter orders by status (e.g., pending, active).
+        - in: query
+          name: is_accepted
+          required: false
+          schema:
+            type: boolean
+          description: Filter orders by acceptance status (true or false).
+        - in: query
+          name: order_by_date
+          required: false
+          schema:
+            type: string
+          description: Sort orders by creation date ("created_at" for ascending or "-created_at" for descending).
 
       responses:
         '200':
-          description: Return list of new orders
+          description: Successfully retrieved the list of unaccepted orders.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                    name:
-                      type: string
-                    owner:
-                      type: string
-                    description:
-                      type: string
-                    createdAt:
-                      type: string
-                      format: date
-                    status:
-                      type: string
-
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Total number of orders available.
+                  next:
+                    type: string
+                    format: uri
+                    nullable: true
+                    description: Link to the next page of results, if available.
+                  previous:
+                    type: string
+                    format: uri
+                    nullable: true
+                    description: Link to the previous page of results, if available.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Unique ID of the order.
+                        name:
+                          type: string
+                          description: Name of the order.
+                        description:
+                          type: string
+                          description: Description of the order.
+                        deadline:
+                          type: string
+                          format: date
+                          description: Deadline for the order.
+                        createdAt:
+                          type: string
+                          format: date
+                          description: Date when the order was created.
+                        status:
+                          type: string
+                          description: Current status of the order.
               example:
-                - {
-                  id: 1,
-                  name: project1,
-                  owner: John,
-                  description: Some description about this order with ID 1,
-                  createdAt: 2024-11-30,
-                  status: active
-                }
-                - {
-                  id: 2,
-                  name: project2,
-                  owner: John,
-                  description: Some description about this order with ID 2,
-                  createdAt: 2024-11-30,
-                  status: active
-                }
+                count: 1
+                next: "http://127.0.0.1:8000/api/orders/management/?page=2"
+                previous: "http://127.0.0.1:8000/api/orders/management/?page=1"
+                results:
+                  - id: 1
+                    name: First order name
+                    description: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    deadline: "2025-12-31"
+                    createdAt: "2025-01-09"
+                    status: pending
+                  - id: 2
+                    name: Second order name
+                    description: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    deadline: "2025-12-31"
+                    createdAt: "2025-01-09"
+                    status: pending
+        '400':
+          description: Validation error occurred during request.
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  detail: Invalid query parameter.
         '403':
-          description: User not authorized
+          description: User is not authorized to view orders.
           content:
             application/json:
               schema:
                 type: object
                 example:
                   detail: Authentication credentials were not provided.
+        '500':
+          description: Server error occurred while retrieving orders.
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: An error occurred while retrieving orders.
 
   /api/orders/management/{id}:
     patch:
