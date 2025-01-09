@@ -38,7 +38,6 @@ class OrderSerializer(serializers.ModelSerializer):
             "tasks",
             "status",
             "on_delete_date",
-            "action",
         ]
         read_only_fields = ["on_delete_date"]
 
@@ -85,7 +84,7 @@ class UpdateOrderSerializer(OrderSerializer):
 
     action = serializers.CharField(required=False)
 
-    ALLOWED_FIELDS = ["name", "description", "deadline"]
+    ALLOWED_FIELDS = ["name", "description", "deadline", "action"]
 
     def validate(self, attrs: dict) -> dict:
         invalid_fields = all(False if attrs.get(field) else True for field in self.ALLOWED_FIELDS)
