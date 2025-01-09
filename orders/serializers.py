@@ -1,11 +1,15 @@
+import logging
+from datetime import timedelta
+
 from django.utils import timezone
+from django.utils.timezone import now
 from rest_framework import serializers
 
-from orders.models import Order
-from orders.utils import change_date_format
+from core.tasks import on_delete_time_item
+from orders.models import Order, OrderStatus
+from orders.utils import change_date_format, OrderManager
 from tasks.models import Task
 from tasks.serializers import BaseTaskSerializer
-from users.models import Team
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -16,6 +20,7 @@ class OrderSerializer(serializers.ModelSerializer):
     createdAt = serializers.ReadOnlyField(source="created_at")
     updatedAt = serializers.ReadOnlyField(source="updated_at")
     acceptedAt = serializers.ReadOnlyField(source="accepted_at")
+    on_delete_time = serializers.ReadOnlyField(source="on_delete_date")
 
     class Meta:
         model = Order
@@ -32,7 +37,10 @@ class OrderSerializer(serializers.ModelSerializer):
             "team",
             "tasks",
             "status",
+            "on_delete_date",
+            "action",
         ]
+        read_only_fields = ["on_delete_date"]
 
     def get_tasks(self, obj):
         tasks = Task.objects.filter(order=obj)
@@ -75,11 +83,29 @@ class UpdateOrderSerializer(OrderSerializer):
     description = serializers.CharField(required=False)
     deadline = serializers.DateField(required=False)
 
+    action = serializers.CharField(required=False)
+
+    ALLOWED_FIELDS = ["name", "description", "deadline"]
+
+    def validate(self, attrs: dict) -> dict:
+        invalid_fields = all(False if attrs.get(field) else True for field in self.ALLOWED_FIELDS)
+        if invalid_fields:
+            raise serializers.ValidationError(
+                {"details": f"The method allows only the following fields: {', '.join(self.ALLOWED_FIELDS)}."}
+            )
+        super().validate(attrs)
+
+        return attrs
+
+
     def update(self, instance: Order, validated_data):
         instance.name = validated_data.get("name", instance.name)
         instance.description = validated_data.get("description", instance.description)
         instance.deadline = validated_data.get("deadline", instance.deadline)
         instance.updated_at = timezone.now()
+        if validated_data.get("action") == "delete":
+            instance.on_delete_date = timezone.now() + timedelta(days=7)
+            self.schedule_delete(instance)
         instance.save()
 
         return instance
@@ -96,8 +122,19 @@ class UpdateOrderSerializer(OrderSerializer):
             "status": instance.status,
         }
 
+    def schedule_delete(self, instance):
 
-class UnacceptedOrderSerializer(OrderSerializer):
+        logger = logging.getLogger(__name__)
+        logger.info(f"Scheduling delete for Order ID {instance.id} at {instance.on_delete_date}")
+        delete_time = instance.on_delete_date
+        if delete_time < now():
+            on_delete_time_item.apply_async(
+                args=[instance.__class__.__name__, instance.pk, "orders"],
+                eta=delete_time,
+            )
+
+
+class OrdersListSerializer(OrderSerializer):
     def to_representation(self, instance: Order):
         created_at = change_date_format(instance.created_at)
 
@@ -111,53 +148,47 @@ class UnacceptedOrderSerializer(OrderSerializer):
         }
 
 
-class AcceptOrderSerializer(serializers.ModelSerializer):
-    accepted = serializers.BooleanField(required=True)
-    team = serializers.IntegerField(source="team.id", required=True)
-    status = serializers.CharField()
+class OrderManagementSerializer(serializers.ModelSerializer):
+    accepted = serializers.BooleanField()
+    team = serializers.IntegerField(source="team.id")
+    status = serializers.CharField(required=True)
 
     class Meta:
         model = Order
         fields = ["accepted", "team", "status"]
 
     def validate(self, attrs):
-        required_fields = ["accepted", "team"]
-        missing_fields = [field for field in required_fields if field not in attrs]
+        self._validate_status(attrs)
 
-        try:
-            team = attrs["team"]
-            status = attrs["status"]
-            team_instance = Team.objects.get(id=team["id"])
-            if status == "active" and team_instance.status == "unavailable":
-                raise serializers.ValidationError({"message": "This team is currently unavailable."})
+        if "team" in attrs:
+            attrs["team_instance"] = OrderManager.get_team(attrs)
 
-        except Team.DoesNotExist:
-            raise serializers.ValidationError({"error": "This team does not exist."})
-
-        if missing_fields:
-            raise serializers.ValidationError({"missing_fields": f"Fields {missing_fields} are required."})
+        status = attrs["status"]
+        if status == "active" and attrs["team_instance"].status == "unavailable":
+            raise serializers.ValidationError({"message": "This team is currently unavailable."})
 
         return attrs
 
     def update(self, instance: Order, validated_data):
+        order_status = validated_data.get("status", instance.status)
         is_accepted = validated_data.get("accepted", False)
-        status = validated_data.get("status", None)
-        team = validated_data.get("team", None)
-        team_instance = Team.objects.get(id=team["id"])
+        team_instance = validated_data.get("team_instance", instance.team)
 
-        if is_accepted and status == "active":
-            instance.accepted = True
-            instance.accepted_at = timezone.now()
-            instance.team_id = team["id"]
-            instance.status = status
-            team_instance.status = "unavailable"
-            team_instance.save()
+        if is_accepted and order_status == "active":
+            accepted_order = OrderManager.accept_order(instance, team_instance, order_status)
+            return accepted_order
 
-        instance.status = status
-        team_instance.status = "available"
+        if order_status == "closed" and team_instance is not None:
+            closed_order = OrderManager.close_order(instance, team_instance, order_status)
+            return closed_order
 
+        if instance.team != validated_data.get("team_instance", None):
+            new_team = OrderManager.change_team(instance, team_instance)
+            return new_team
+
+        instance.team = team_instance
+        instance.status = order_status
         instance.save()
-        team_instance.save()
         return instance
 
     def to_representation(self, instance: Order):
@@ -171,3 +202,9 @@ class AcceptOrderSerializer(serializers.ModelSerializer):
             "team": instance.team_id,
             "status": instance.status,
         }
+
+    def _validate_status(self, attrs: dict) -> None:
+        status = attrs["status"]
+        statuses = [OrderStatus.PENDING.value, OrderStatus.ACTIVE.value, OrderStatus.CLOSED.value]
+        if status not in statuses:
+            raise serializers.ValidationError({"status": f"Available statuses: {statuses}"})

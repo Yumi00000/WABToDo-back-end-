@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import logging
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from decouple import config
@@ -47,11 +49,11 @@ INSTALLED_APPS = [
     # INSTALLED
     "rest_framework",
     "rest_framework.authtoken",
+    "rest_framework_simplejwt",
     "django_extensions",
     "django_celery_beat",
     "channels_redis",
     "channels",
-
     "dj_rest_auth",
     "drf_spectacular",
     "allauth",
@@ -59,7 +61,6 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.mfa",
-    "drf_spectacular",
 ]
 
 SITE_ID = 1
@@ -79,11 +80,12 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "core.middleware.TokenCacheMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -109,29 +111,29 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "crm_lab_database",
-        "USER": "postgres",
-        "PASSWORD": config("POSTGRES_PASSWORD"),
-        "HOST": "127.0.0.1",
-        "PORT": "5432",
-    }
-}
 
 if os.getenv("DOCKERIZED", False):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql_psycopg2",
-            "NAME": os.getenv("POSTGRES_DB", "mock-db"),
+            "NAME": os.getenv("POSTGRES_DB"),
             "USER": "postgres",
             "PASSWORD": config("POSTGRES_PASSWORD"),
             "HOST": "db",
             "PORT": "5432",
         }
     }
-
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "crm_lab_database",
+            "USER": "postgres",
+            "PASSWORD": config("POSTGRES_PASSWORD"),
+            "HOST": "127.0.0.1",
+            "PORT": "5432",
+        }
+    }
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 AUTH_USER_MODEL = "users.CustomUser"
@@ -148,6 +150,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
+]
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",  # For old passwords
 ]
 
 # Internationalization
@@ -171,12 +178,13 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# RDF configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        # "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
         "core.authentication.CustomJWTAuthentication",
     ],
-    # "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
@@ -210,14 +218,17 @@ LOGGING = {
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = "amqp://guest@localhost:5672//"
+CELERY_BROKER_URL = "redis://localhost:6379/0"
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+CELERY_TASK_TRACK_STARTED = True
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = True
 CELERY_TASK_BACKEND = "rpc://"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+CELERY_IMPORTS = ["core.tasks"]
 
 
 # SocialAccount configuration
@@ -255,31 +266,20 @@ EMAIL_HOST_PASSWORD = config("GMAIL_APP_PASSWORD_KEY")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
-LOGIN_URL = "/admin"
+LOGIN_URL = "api/users/login/"
 
 REST_AUTH = {
-    "LOGIN_SERIALIZER": "users.serializers.CustomLoginSerializer",
-    "REGISTER_SERIALIZER": "users.serializers.RegistrationSerializer",
-    "TOKEN_MODEL": "users.models.CustomAuthToken",
     "PASSWORD_RESET_USE_SITES_DOMAIN": False,
     "OLD_PASSWORD_FIELD_ENABLED": False,
     "LOGOUT_ON_PASSWORD_CHANGE": True,
     "SESSION_LOGIN": True,
 }
 
-# Swagger rendering config
-SPECTACULAR_SETTINGS = {
-    "TITLE": "API Documentation",
-    "DESCRIPTION": "API Description",
-    "VERSION": "1.0.0",
-    "SECURITY": [
-        {"bearerAuth": []},
-    ],
-    "SECURITY_DEFINITIONS": {
-        "bearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
-        }
-    },
+# Cache
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "TIMEOUT": 300,
+    }
 }

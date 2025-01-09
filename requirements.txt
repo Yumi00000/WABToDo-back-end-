@@ -42,7 +42,6 @@ fido2==1.2.0
 frozenlist==1.5.0
 gevent==24.11.1
 google==3.0.0
-greenlet==3.0.3
 gunicorn==23.0.0
 httplib2==0.22.0
 hyperlink==21.0.0
@@ -102,3 +101,4 @@ wheel==0.45.0
 yarl==1.17.1
 zope.event==5.0
 zope.interface==7.2
+drf-spectacular==0.28.0
