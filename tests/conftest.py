@@ -1,12 +1,11 @@
 from unittest.mock import patch
 
 import pytest
-from django.conf import settings
 from rest_framework.test import APIClient
 
 from orders.models import Order
 from tasks.models import Task
-from tests.test_data import user_credentials, order_fake_creating_data
+from tests.test_data import users_credentials, order_fake_creating_data
 from users.models import CustomAuthToken, Team
 from users.models import CustomUser
 
@@ -21,8 +20,8 @@ def users(django_db_setup, django_db_blocker) -> tuple[list[CustomUser], list[di
     Useful for testing scenarios involving authenticated or unauthenticated users.
     """
     with django_db_blocker.unblock():
-        user = [CustomUser.objects.create_user(**credentials) for credentials in user_credentials]
-        return user, user_credentials
+        user = [CustomUser.objects.create_user(**credentials) for credentials in users_credentials]
+        return user, users_credentials
 
 
 @pytest.fixture
