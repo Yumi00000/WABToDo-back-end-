@@ -143,7 +143,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Team
-        fields = ["leader", "status", "list_of_members"]
+        fields = ["id", "leader", "list_of_members", "status"]
 
     def get_list_of_members(self, obj: Team):
         members = [member.username for member in obj.list_of_members.all()]
@@ -151,11 +151,12 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class CreateTeamSerializer(serializers.ModelSerializer):
+    leader = serializers.IntegerField(required=False)
     list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True)
 
     class Meta:
         model = Team
-        fields = ["list_of_members", "status"]
+        fields = ["id", "leader", "list_of_members", "status"]
 
     def create(self, validated_data):
         leader = self.context["request"].user
