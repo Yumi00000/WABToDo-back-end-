@@ -111,16 +111,6 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "crm_lab_database",
-        "USER": "postgres",
-        "PASSWORD": config("POSTGRES_PASSWORD"),
-        "HOST": "127.0.0.1",
-        "PORT": "5432",
-    }
-}
 
 if os.getenv("DOCKERIZED", False):
     DATABASES = {
@@ -130,6 +120,17 @@ if os.getenv("DOCKERIZED", False):
             "USER": "postgres",
             "PASSWORD": config("POSTGRES_PASSWORD"),
             "HOST": "db",
+            "PORT": "5432",
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "crm_lab_database",
+            "USER": "postgres",
+            "PASSWORD": config("POSTGRES_PASSWORD"),
+            "HOST": "127.0.0.1",
             "PORT": "5432",
         }
     }
@@ -272,22 +273,10 @@ REST_AUTH = {
 }
 
 # Cache
-logger = logging.getLogger(__name__)
-if "TESTING" in os.environ:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
-            "LOCATION": "redis://redis:6379/1",
-            "TIMEOUT": 300,
-        }
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "TIMEOUT": 300,
     }
-    logger.info("Using dummy cache for testing.")
-else:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": "redis://redis:6379/1",
-            "TIMEOUT": 300,
-        }
-    }
-    logger.info("Using Redis cache for production.")
+}
