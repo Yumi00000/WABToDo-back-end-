@@ -21,6 +21,7 @@ class OrderSerializer(serializers.ModelSerializer):
     updatedAt = serializers.ReadOnlyField(source="updated_at")
     acceptedAt = serializers.ReadOnlyField(source="accepted_at")
     on_delete_time = serializers.ReadOnlyField(source="on_delete_date")
+    action = serializers.CharField(required=False)
 
     class Meta:
         model = Order
@@ -38,6 +39,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "tasks",
             "status",
             "on_delete_date",
+            "action"
         ]
         read_only_fields = ["on_delete_date"]
 
@@ -81,10 +83,9 @@ class UpdateOrderSerializer(OrderSerializer):
     name = serializers.CharField(required=False)
     description = serializers.CharField(required=False)
     deadline = serializers.DateField(required=False)
-
     action = serializers.CharField(required=False)
 
-    ALLOWED_FIELDS = ["name", "description", "deadline", "action"]
+    ALLOWED_FIELDS = ["name", "description", "deadline"]
 
     def validate(self, attrs: dict) -> dict:
         invalid_fields = all(False if attrs.get(field) else True for field in self.ALLOWED_FIELDS)
@@ -95,7 +96,6 @@ class UpdateOrderSerializer(OrderSerializer):
         super().validate(attrs)
 
         return attrs
-
 
     def update(self, instance: Order, validated_data):
         instance.name = validated_data.get("name", instance.name)

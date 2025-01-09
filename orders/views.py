@@ -61,7 +61,7 @@ class EditOrderView(generics.UpdateAPIView, GenericViewSet, OrderLoggerMixin):
 
 
 class GetOrdersListView(generics.ListAPIView, GenericViewSet, OrderLoggerMixin):
-    # permission_classes = [custom_perm.IsAdminOrStaff]
+    permission_classes = [custom_perm.IsAdminOrStaff]
     pagination_class = UnacceptedOrdersPagination
     serializer_class = orders_serializers.OrdersListSerializer
 

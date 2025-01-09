@@ -1,4 +1,3 @@
-
 from autobahn.util import generate_user_password
 from django.contrib.auth import login
 from django.core.signing import Signer, BadSignature
@@ -66,6 +65,7 @@ class LoginView(APIView, TokenManager):
             {"token": token.key},
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
+
 
 class EditUserView(generics.RetrieveUpdateAPIView, GenericViewSet):
     queryset = CustomUser.objects.all()
@@ -198,13 +198,17 @@ class TeamView(generics.RetrieveAPIView, GenericViewSet, TeamLoggerMixin):
 
 class CreateChatView(generics.CreateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
     serializer_class = user_serializers.CreateChatSerializer
 
 
 class EditChatView(generics.UpdateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [c_prm.IsChatAdmin,]
+    permission_classes = [
+        c_prm.IsChatAdmin,
+    ]
     serializer_class = user_serializers.UpdateChatSerializer
 
 
@@ -237,7 +241,6 @@ class ChatListView(generics.ListAPIView, GenericViewSet):
         # Filter chats by participants through the related name 'participants'
         chat_ids = Participant.objects.filter(user_id=user_id).values_list("chat_id", flat=True)
         return Chat.objects.filter(id__in=chat_ids)
-
 
 
 class GoogleLoginApi(APIView, TokenManager):
@@ -303,5 +306,5 @@ class GoogleLoginApi(APIView, TokenManager):
 
         return Response(
             result,
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,)
-
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
