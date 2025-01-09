@@ -14,6 +14,37 @@ from tasks.paginations import TasksPagination
 
 
 class GetTeamTasksView(generics.ListAPIView, GenericViewSet, TaskLoggerMixin):
+    """
+    Handles the retrieval of team tasks with filtering and custom logging mechanisms.
+
+    This class-based view enables team members or administrators to fetch a list of tasks
+    associated with a specified team or order. It extends Django's `ListAPIView` and integrates
+    with a custom logging mixin for logging task retrieval events. Filtering options and
+    search capabilities are provided for a tailored task view.
+
+    Attributes
+    ----------
+    permission_classes : list
+        Specifies the permissions necessary to access this view. Only team members or
+        administrators are allowed.
+    serializer_class : type
+        The serializer class used for serializing task data.
+    pagination_class : type
+        The pagination class applied to responses for paginated task lists.
+    filter_backends : list
+        Backend filters used for advanced task filtering and searching functionality.
+    filterset_fields : list
+        Specific fields available for task filtering by clients.
+
+    Methods
+    -------
+    get_queryset()
+        Retrieves the task queryset for the requesting user with applied filters based
+        on request data and query parameters.
+    list(request, *args, **kwargs)
+        Handles the GET request to retrieve and return a list of tasks, incorporating
+        logging for task retrieval attempts, successes, and errors.
+    """
     permission_classes = [custom_perm.IsTeamMemberOrAdmin]
     serializer_class = task_serializers.BaseTaskSerializer
     pagination_class = TasksPagination
@@ -54,6 +85,29 @@ class GetTeamTasksView(generics.ListAPIView, GenericViewSet, TaskLoggerMixin):
 
 
 class CreateTaskView(generics.CreateAPIView, GenericViewSet, TaskLoggerMixin):
+    """
+    CreateTaskView handles the creation of new task objects.
+
+    This class extends `generics.CreateAPIView` for handling HTTP POST requests to create
+    a new task. It integrates with `GenericViewSet` for viewset functionalities in Django
+    REST Framework and utilizes the `TaskLoggerMixin` to log task creation events for
+    monitoring and debugging. The class ensures permissions are checked, validated data
+    is serialized, and tasks are created securely.
+
+    Attributes
+    ----------
+    queryset : QuerySet
+        A queryset representing all tasks in the system.
+    permission_classes : list
+        A list of permission classes that restrict access to team members or administrators.
+    serializer_class : Type[Serializer]
+        A serializer class used for validating and serializing task data.
+
+    Methods
+    -------
+    create(request, *args, **kwargs)
+        Handles task creation while logging events and exceptions along the process.
+    """
     queryset = Task.objects.all()
     permission_classes = [custom_perm.IsTeamMemberOrAdmin]
     serializer_class = task_serializers.CreateTaskSerializer
@@ -77,6 +131,26 @@ class CreateTaskView(generics.CreateAPIView, GenericViewSet, TaskLoggerMixin):
 
 
 class UpdateTaskView(generics.UpdateAPIView, GenericViewSet, TaskLoggerMixin):
+    """
+    Handles the update functionality for a task.
+
+    This class extends the `generics.UpdateAPIView` and `GenericViewSet` to manage the updating
+    of tasks in the system. It also incorporates logging functionality provided by `TaskLoggerMixin`
+    to track update attempts, successful updates, and errors during the update process. The class
+    uses a custom serializer to validate the task data and custom permissions to ensure that only
+    authorized users can update tasks.
+
+    Attributes:
+    queryset: Contains the set of Task instances available for updating.
+    permission_classes: Specifies the permission rules that restrict access to authorized users.
+    serializer_class: Defines the serializer used to validate and serialize data for editing tasks.
+
+    Methods:
+    update(self, request, *args, **kwargs): Handles the update logic for a task. Implements logging
+                                             and error handling functionality alongside parent
+                                             class's update logic.
+
+    """
     queryset = Task.objects.all()
     permission_classes = [custom_perm.IsTeamMemberOrAdmin]
     serializer_class = task_serializers.EditTaskSerializer
@@ -104,6 +178,19 @@ class UpdateTaskView(generics.UpdateAPIView, GenericViewSet, TaskLoggerMixin):
 
 
 class DeleteTaskView(generics.DestroyAPIView, GenericViewSet, TaskLoggerMixin):
+    """
+    Provides functionality for deleting a task.
+
+    This class allows deletion of a task while logging the attempt, success,
+    or any errors encountered during the deletion process. It uses permissions
+    to restrict access and ensures proper error handling and logging behavior.
+
+    Attributes:
+        queryset: The queryset that defines which tasks are eligible for
+                  deletion.
+        permission_classes: List of permission classes applied to restrict
+                            access for task deletion.
+    """
     queryset = Task.objects.all()
     permission_classes = [custom_perm.IsTeamMemberOrAdmin]
 

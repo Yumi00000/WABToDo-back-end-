@@ -1,11 +1,25 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
   title: ''
-  version: 1.0.0
+  version: 0.0.0
 paths:
   /api/orders/create/:
     post:
       operationId: orders_create_create
+      description: |-
+        Handles the creation of orders through API while incorporating logging functionality for
+        various events such as creation attempts, successes, validation errors, and general errors.
+
+        This class extends `generics.CreateAPIView` and `GenericViewSet` to provide standard
+        Create API behavior and integrates custom logging logic from `OrderLoggerMixin`. It defines
+        customized behavior for order creation, ensuring detailed logging for operational insights.
+
+        Attributes:
+            queryset: The queryset representing the collection of all `Order` objects.
+            permission_classes: The list of permission classes enforcing `IsAuthenticated` to ensure
+                only authenticated users can create orders.
+            serializer_class: The serializer class `CreateOrderSerializer` which validates data for
+                creating orders and controls serialization/deserialization of input/output data.
       tags:
       - orders
       requestBody:
@@ -32,6 +46,23 @@ paths:
   /api/orders/edit/{id}/:
     put:
       operationId: orders_edit_update
+      description: |-
+        Allows users to update an order with proper logging for update attempts and errors.
+
+        This class serves as a combination view for handling order updates securely. It
+        validates user permissions, updates the order information based on the provided
+        serializer, and logs attempts, errors, and successful updates for diagnostic
+        and audit purposes. It supports custom permissions to ensure only the order owner
+        or an admin can perform updates.
+
+        Attributes:
+            queryset: Order
+                Queryset that provides all Order objects for the view.
+            permission_classes: list
+                List of permission classes used to determine if the user has sufficient
+                permission to update the order. Includes custom and built-in permissions.
+            serializer_class: Type[serializers.Serializer]
+                Serializer class used to validate and process order update data.
       parameters:
       - in: path
         name: id
@@ -63,6 +94,23 @@ paths:
           description: ''
     patch:
       operationId: orders_edit_partial_update
+      description: |-
+        Allows users to update an order with proper logging for update attempts and errors.
+
+        This class serves as a combination view for handling order updates securely. It
+        validates user permissions, updates the order information based on the provided
+        serializer, and logs attempts, errors, and successful updates for diagnostic
+        and audit purposes. It supports custom permissions to ensure only the order owner
+        or an admin can perform updates.
+
+        Attributes:
+            queryset: Order
+                Queryset that provides all Order objects for the view.
+            permission_classes: list
+                List of permission classes used to determine if the user has sufficient
+                permission to update the order. Includes custom and built-in permissions.
+            serializer_class: Type[serializers.Serializer]
+                Serializer class used to validate and process order update data.
       parameters:
       - in: path
         name: id
@@ -95,6 +143,22 @@ paths:
   /api/orders/management/:
     get:
       operationId: orders_management_list
+      description: |-
+        Provides a view for retrieving a list of orders with flexible filtering and ordering.
+
+        This class-based view leverages Django's generics.ListAPIView and provides a highly
+        customizable way to retrieve order data. It allows filtering by order status and
+        acceptance status and supports sorting orders by creation date. Additionally, the
+        view logs various aspects of the request and response process, including unaccepted
+        orders, retrieved orders, and any errors encountered during the operation.
+
+        Attributes:
+            permission_classes: A list of permissions, restricting access to the view based
+                on user roles. This view allows access only to admin or staff users.
+            pagination_class: Specifies the pagination class to handle order responses. In
+                this view, unaccepted orders are paginated.
+            serializer_class: Indicates the serializer class used for formatting the output
+                of the orders list.
       parameters:
       - name: page
         required: false
@@ -116,6 +180,18 @@ paths:
   /api/orders/management/{id}/:
     put:
       operationId: orders_management_update
+      description: |-
+        Manages update operations for orders.
+
+        This class allows authorized users (admin or staff) to update order details through API
+        requests. It includes logging mechanisms to track updates, validation errors, and
+        unexpected errors during the update process.
+
+        Attributes:
+            queryset: Queryset containing all order objects to be managed.
+            permission_classes: List of permission classes that define access control.
+            serializer_class: Serializer used for validating and deserializing input data
+                for order updates.
       parameters:
       - in: path
         name: id
@@ -148,6 +224,18 @@ paths:
           description: ''
     patch:
       operationId: orders_management_partial_update
+      description: |-
+        Manages update operations for orders.
+
+        This class allows authorized users (admin or staff) to update order details through API
+        requests. It includes logging mechanisms to track updates, validation errors, and
+        unexpected errors during the update process.
+
+        Attributes:
+            queryset: Queryset containing all order objects to be managed.
+            permission_classes: List of permission classes that define access control.
+            serializer_class: Serializer used for validating and deserializing input data
+                for order updates.
       parameters:
       - in: path
         name: id
@@ -325,6 +413,36 @@ paths:
   /api/tasks/:
     get:
       operationId: tasks_list
+      description: |-
+        Handles the retrieval of team tasks with filtering and custom logging mechanisms.
+
+        This class-based view enables team members or administrators to fetch a list of tasks
+        associated with a specified team or order. It extends Django's `ListAPIView` and integrates
+        with a custom logging mixin for logging task retrieval events. Filtering options and
+        search capabilities are provided for a tailored task view.
+
+        Attributes
+        ----------
+        permission_classes : list
+            Specifies the permissions necessary to access this view. Only team members or
+            administrators are allowed.
+        serializer_class : type
+            The serializer class used for serializing task data.
+        pagination_class : type
+            The pagination class applied to responses for paginated task lists.
+        filter_backends : list
+            Backend filters used for advanced task filtering and searching functionality.
+        filterset_fields : list
+            Specific fields available for task filtering by clients.
+
+        Methods
+        -------
+        get_queryset()
+            Retrieves the task queryset for the requesting user with applied filters based
+            on request data and query parameters.
+        list(request, *args, **kwargs)
+            Handles the GET request to retrieve and return a list of tasks, incorporating
+            logging for task retrieval attempts, successes, and errors.
       parameters:
       - name: page
         required: false
@@ -352,6 +470,28 @@ paths:
   /api/tasks/create/:
     post:
       operationId: tasks_create_create
+      description: |-
+        CreateTaskView handles the creation of new task objects.
+
+        This class extends `generics.CreateAPIView` for handling HTTP POST requests to create
+        a new task. It integrates with `GenericViewSet` for viewset functionalities in Django
+        REST Framework and utilizes the `TaskLoggerMixin` to log task creation events for
+        monitoring and debugging. The class ensures permissions are checked, validated data
+        is serialized, and tasks are created securely.
+
+        Attributes
+        ----------
+        queryset : QuerySet
+            A queryset representing all tasks in the system.
+        permission_classes : list
+            A list of permission classes that restrict access to team members or administrators.
+        serializer_class : Type[Serializer]
+            A serializer class used for validating and serializing task data.
+
+        Methods
+        -------
+        create(request, *args, **kwargs)
+            Handles task creation while logging events and exceptions along the process.
       tags:
       - tasks
       requestBody:
@@ -378,6 +518,18 @@ paths:
   /api/tasks/delete/{id}/:
     delete:
       operationId: tasks_delete_destroy
+      description: |-
+        Provides functionality for deleting a task.
+
+        This class allows deletion of a task while logging the attempt, success,
+        or any errors encountered during the deletion process. It uses permissions
+        to restrict access and ensures proper error handling and logging behavior.
+
+        Attributes:
+            queryset: The queryset that defines which tasks are eligible for
+                      deletion.
+            permission_classes: List of permission classes applied to restrict
+                                access for task deletion.
       parameters:
       - in: path
         name: id
@@ -395,6 +547,24 @@ paths:
   /api/tasks/edit/{id}/:
     put:
       operationId: tasks_edit_update
+      description: |-
+        Handles the update functionality for a task.
+
+        This class extends the `generics.UpdateAPIView` and `GenericViewSet` to manage the updating
+        of tasks in the system. It also incorporates logging functionality provided by `TaskLoggerMixin`
+        to track update attempts, successful updates, and errors during the update process. The class
+        uses a custom serializer to validate the task data and custom permissions to ensure that only
+        authorized users can update tasks.
+
+        Attributes:
+        queryset: Contains the set of Task instances available for updating.
+        permission_classes: Specifies the permission rules that restrict access to authorized users.
+        serializer_class: Defines the serializer used to validate and serialize data for editing tasks.
+
+        Methods:
+        update(self, request, *args, **kwargs): Handles the update logic for a task. Implements logging
+                                                 and error handling functionality alongside parent
+                                                 class's update logic.
       parameters:
       - in: path
         name: id
@@ -426,6 +596,24 @@ paths:
           description: ''
     patch:
       operationId: tasks_edit_partial_update
+      description: |-
+        Handles the update functionality for a task.
+
+        This class extends the `generics.UpdateAPIView` and `GenericViewSet` to manage the updating
+        of tasks in the system. It also incorporates logging functionality provided by `TaskLoggerMixin`
+        to track update attempts, successful updates, and errors during the update process. The class
+        uses a custom serializer to validate the task data and custom permissions to ensure that only
+        authorized users can update tasks.
+
+        Attributes:
+        queryset: Contains the set of Task instances available for updating.
+        permission_classes: Specifies the permission rules that restrict access to authorized users.
+        serializer_class: Defines the serializer used to validate and serialize data for editing tasks.
+
+        Methods:
+        update(self, request, *args, **kwargs): Handles the update logic for a task. Implements logging
+                                                 and error handling functionality alongside parent
+                                                 class's update logic.
       parameters:
       - in: path
         name: id
@@ -458,6 +646,15 @@ paths:
   /api/users/activate/{user_signed}:
     get:
       operationId: users_activate_retrieve
+      description: |-
+        Class to handle user account activation process.
+
+        This class is responsible for activating a user's account through a predefined
+        signed URL. It verifies the signed data, retrieves the corresponding user, and
+        activates their account if valid.
+
+        Attributes:
+            permission_classes (list): List of permissions required to access this view.
       parameters:
       - in: path
         name: user_signed
@@ -475,6 +672,19 @@ paths:
   /api/users/chat/create/:
     post:
       operationId: users_chat_create_create
+      description: |-
+        This class handles the creation of chat instances.
+
+        Provides functionality to create a new chat instance using the specified
+        serializer and ensures only authenticated users can perform the action.
+
+        Attributes:
+            queryset: The set of Chat objects available for operations. All
+                instances of the Chat model are included.
+            permission_classes: List containing the permission classes applied
+                to this view. Only authenticated users are allowed.
+            serializer_class: Specifies the serializer class to be used for
+                serializing and deserializing chat data.
       tags:
       - users
       requestBody:
@@ -501,6 +711,23 @@ paths:
   /api/users/chat/edit/{id}/:
     put:
       operationId: users_chat_edit_update
+      description: |-
+        Handles updating information for a chat.
+
+        This class-based view is used to update specific details of a chat instance.
+        It is designed to ensure the user has the appropriate permissions and that the
+        provided data is properly validated and serialized before updating the chat
+        object. Inherits from Django REST framework's UpdateAPIView and additional
+        viewset functionality.
+
+        Attributes:
+            queryset: The set of Chat instances from which the object to be updated
+                is selected.
+            permission_classes: A list of permission classes that check if the user
+                has the necessary authorization. In this case, it ensures the user is
+                an admin of the chat.
+            serializer_class: Specifies the serializer used to validate and deserialize
+                the incoming data before persisting changes to the Chat object.
       parameters:
       - in: path
         name: id
@@ -532,6 +759,23 @@ paths:
           description: ''
     patch:
       operationId: users_chat_edit_partial_update
+      description: |-
+        Handles updating information for a chat.
+
+        This class-based view is used to update specific details of a chat instance.
+        It is designed to ensure the user has the appropriate permissions and that the
+        provided data is properly validated and serialized before updating the chat
+        object. Inherits from Django REST framework's UpdateAPIView and additional
+        viewset functionality.
+
+        Attributes:
+            queryset: The set of Chat instances from which the object to be updated
+                is selected.
+            permission_classes: A list of permission classes that check if the user
+                has the necessary authorization. In this case, it ensures the user is
+                an admin of the chat.
+            serializer_class: Specifies the serializer used to validate and deserialize
+                the incoming data before persisting changes to the Chat object.
       parameters:
       - in: path
         name: id
@@ -564,6 +808,20 @@ paths:
   /api/users/chat/info/{id}/:
     get:
       operationId: users_chat_info_retrieve
+      description: |-
+        ChatView class retrieves chat details for a chat participant.
+
+        This class extends RetrieveAPIView and GenericViewSet to provide a functionality
+        for retrieving chat details. It ensures that only participants of the respective
+        chat can access this information and returns chat data serialized in the format
+        provided by the associated serializer. The class also includes error handling
+        to return a standardized error message and HTTP status if an exception is encountered
+        during the retrieval process.
+
+        Attributes:
+            queryset: Queryset for retrieving Chat objects.
+            permission_classes: List of permissions required to access the resource.
+            serializer_class: Serializer used for formatting the retrieved chat data.
       parameters:
       - in: path
         name: id
@@ -585,6 +843,21 @@ paths:
   /api/users/chat/list/:
     get:
       operationId: users_chat_list_list
+      description: |-
+        Represents a view for listing chats associated with the authenticated user.
+
+        This class provides functionality to list all chats in which the user is a participant.
+        It ensures that only authenticated users can access the chat data and uses a serializer
+        to process the chat objects for the API response.
+
+        Attributes:
+            queryset: Represents the base queryset for fetching chat objects.
+            permission_classes: Specifies the permissions required to access this view.
+            serializer_class: Determines the serializer used to handle chat objects.
+
+        Methods:
+            get_queryset():
+                Custom method to retrieve chats associated with the authenticated user.
       tags:
       - users
       security:
@@ -601,6 +874,25 @@ paths:
   /api/users/dashboard/:
     get:
       operationId: users_dashboard_list
+      description: |-
+        Class DashboardView is responsible for handling API requests related to the user's dashboard.
+
+        This class provides functionality for authenticated users to retrieve information regarding their own orders
+        and those of their team members. It combines functionality of Django Rest Framework's ListAPIView and
+        GenericViewSet to handle listing operations. Additionally, it includes custom logging capabilities to track
+        dashboard access and actions.
+
+        Attributes:
+            permission_classes (list): Defines the permissions required to access this view.
+            serializer_class (type): The serializer class used to serialize the response data.
+            pagination_class (type): The pagination class defining how the data is paginated.
+
+        Methods:
+            get_queryset():
+                Retrieves the queryset containing orders that belong to the logged-in user or to their team members.
+
+            list():
+                Handles listing operation along with custom logging of actions and error handling.
       parameters:
       - name: page
         required: false
@@ -622,6 +914,22 @@ paths:
   /api/users/edit/{id}/:
     get:
       operationId: users_edit_retrieve
+      description: |-
+        This class is a view for retrieving and updating user information.
+
+        The EditUserView class provides functionality to retrieve and update
+        information of a user. It combines the capabilities of RetrieveUpdateAPIView
+        with additional behavior from GenericViewSet. This class enforces permissions
+        to ensure that only the account owner can access or modify their data.
+        A specific serializer is used to handle the transformation between serialized
+        and database representations of the user's data.
+
+        Attributes:
+            queryset: A queryset to retrieve all CustomUser instances.
+            permission_classes: A list of permission classes, restricting access
+                to account owners only.
+            serializer_class: The serializer class responsible for transforming
+                user data between representations.
       parameters:
       - in: path
         name: id
@@ -642,6 +950,22 @@ paths:
           description: ''
     put:
       operationId: users_edit_update
+      description: |-
+        This class is a view for retrieving and updating user information.
+
+        The EditUserView class provides functionality to retrieve and update
+        information of a user. It combines the capabilities of RetrieveUpdateAPIView
+        with additional behavior from GenericViewSet. This class enforces permissions
+        to ensure that only the account owner can access or modify their data.
+        A specific serializer is used to handle the transformation between serialized
+        and database representations of the user's data.
+
+        Attributes:
+            queryset: A queryset to retrieve all CustomUser instances.
+            permission_classes: A list of permission classes, restricting access
+                to account owners only.
+            serializer_class: The serializer class responsible for transforming
+                user data between representations.
       parameters:
       - in: path
         name: id
@@ -674,6 +998,22 @@ paths:
           description: ''
     patch:
       operationId: users_edit_partial_update
+      description: |-
+        This class is a view for retrieving and updating user information.
+
+        The EditUserView class provides functionality to retrieve and update
+        information of a user. It combines the capabilities of RetrieveUpdateAPIView
+        with additional behavior from GenericViewSet. This class enforces permissions
+        to ensure that only the account owner can access or modify their data.
+        A specific serializer is used to handle the transformation between serialized
+        and database representations of the user's data.
+
+        Attributes:
+            queryset: A queryset to retrieve all CustomUser instances.
+            permission_classes: A list of permission classes, restricting access
+                to account owners only.
+            serializer_class: The serializer class responsible for transforming
+                user data between representations.
       parameters:
       - in: path
         name: id
@@ -706,6 +1046,15 @@ paths:
   /api/users/google-oauth2/callback-raw/:
     get:
       operationId: users_google_oauth2_callback_raw_retrieve
+      description: |-
+        Handles Google login and authentication via OAuth2.
+
+        This class integrates APIView for request handling and TokenManager for token
+        management. It processes the Google OAuth2 login flow, validates incoming data,
+        exchanges authorization codes for tokens, retrieves user information, and creates
+        or updates user accounts in the application. The purpose of this class is to
+        enable user authentication through their Google accounts and provide session
+        tokens for authenticated users.
       tags:
       - users
       security:
@@ -721,6 +1070,20 @@ paths:
   /api/users/login/:
     post:
       operationId: users_login_create
+      description: |-
+        Handles user login functionality.
+
+        The LoginView class facilitates user login by validating the provided credentials
+        and generating a token for the authenticated user. It combines functionality
+        from APIView for handling requests and TokenManager for managing user tokens.
+        This class allows any user to access the endpoint regardless of authentication
+        status due to its permission settings.
+
+        Attributes:
+            permission_classes (list): Specifies the permission classes to allow
+                unrestricted access to the login endpoint.
+            serializer_class (type): Defines the serializer class to validate
+                and process login data.
       tags:
       - users
       requestBody:
@@ -865,6 +1228,19 @@ paths:
   /api/users/registration/:
     post:
       operationId: users_registration_create
+      description: |-
+        Handles user registration functionalities.
+
+        This class combines functionality from `CreateAPIView` and `GenericViewSet` to allow
+        registration of new users in the system. It interacts with the CustomUser model
+        and uses a designated serializer to handle the creation process. After successfully
+        creating a user, it sends an activation email to the registered email address.
+
+        Attributes:
+            queryset: Specifies the queryset of `CustomUser` instances.
+            permission_classes: List of permissions required to access this view, allowing
+                any client to register without restrictions.
+            serializer_class: Specifies the serializer used for processing registration data.
       tags:
       - users
       requestBody:
@@ -892,6 +1268,21 @@ paths:
   /api/users/team/create/:
     post:
       operationId: users_team_create_create
+      description: |-
+        Handles the creation of new team records in the system.
+
+        This view combines functionalities of Django Rest Framework's CreateAPIView and GenericViewSet.
+        It also incorporates custom logging mechanics from TeamLoggerMixin to log specific actions related
+        to team creation. Primarily, it facilitates accepting, validating, and storing new team-related
+        data via HTTP POST requests.
+
+        Attributes:
+            queryset: Queryset used to retrieve Team objects from the database.
+            permission_classes: List of permission classes that restrict access to the view to admins or staff members.
+            serializer_class: Serializer class used to validate and serialize the input data for team creation.
+
+        Methods:
+            create: Handles HTTP POST requests to create a new team.
       tags:
       - users
       requestBody:
@@ -918,6 +1309,20 @@ paths:
   /api/users/team/edit/{id}/:
     put:
       operationId: users_team_edit_update
+      description: |-
+        Provides functionality for updating team details.
+
+        This class is designed to handle HTTP PATCH or PUT requests to update existing team
+        details. It combines functionality from `UpdateAPIView`, `GenericViewSet`, and a custom
+        mixin `TeamLoggerMixin`. The permissions include both administrative controls and access
+        checks to ensure that only authorized users may update a team. The serializer used
+        validates and applies the update logic. Logging is enabled throughout the process to
+        track events, errors, and validation issues.
+
+        Attributes:
+            queryset: The complete set of Team objects to support retrieving instances for updating.
+            permission_classes: A list of permission classes that enforce rules for access to the endpoint.
+            serializer_class: Specifies the serializer used to handle validation and update operations.
       parameters:
       - in: path
         name: id
@@ -950,6 +1355,20 @@ paths:
           description: ''
     patch:
       operationId: users_team_edit_partial_update
+      description: |-
+        Provides functionality for updating team details.
+
+        This class is designed to handle HTTP PATCH or PUT requests to update existing team
+        details. It combines functionality from `UpdateAPIView`, `GenericViewSet`, and a custom
+        mixin `TeamLoggerMixin`. The permissions include both administrative controls and access
+        checks to ensure that only authorized users may update a team. The serializer used
+        validates and applies the update logic. Logging is enabled throughout the process to
+        track events, errors, and validation issues.
+
+        Attributes:
+            queryset: The complete set of Team objects to support retrieving instances for updating.
+            permission_classes: A list of permission classes that enforce rules for access to the endpoint.
+            serializer_class: Specifies the serializer used to handle validation and update operations.
       parameters:
       - in: path
         name: id
@@ -982,6 +1401,27 @@ paths:
   /api/users/team/info/{id}/:
     get:
       operationId: users_team_info_retrieve
+      description: |-
+        Retrieve and manage team details through a view.
+
+        This class extends Django REST framework's `RetrieveAPIView` to enable retrieval of team
+        details. It also incorporates additional functionality such as logging actions performed
+        during the retrieval process and managing permissions for team members or administrators.
+
+        Attributes:
+            queryset: The initial queryset containing all team objects from the database.
+            permission_classes: A list of permission classes, ensuring only team members or
+                administrators have access to the view.
+            serializer_class: The serializer class used for converting team objects into
+                serializable representations.
+
+        Methods:
+            get_queryset():
+                Override to filter the queryset based on the team ID provided in the request.
+
+            get():
+                Handle GET requests, log retrieval attempts and results, and handle errors
+                gracefully during the team detail retrieval process.
       parameters:
       - in: path
         name: id
@@ -1003,6 +1443,28 @@ paths:
   /api/users/teams/:
     get:
       operationId: users_teams_list
+      description: |-
+        Handles listing Team objects with logging and permission checking.
+
+        This class is a custom implementation for handling requests to retrieve
+        a list of Team objects. It adds logging capabilities to track successful
+        retrievals, failed attempts, and errors during the process. This class
+        utilizes Django REST framework functionality for generic listing of objects
+        and specifically works with Team objects.
+
+        Attributes:
+            queryset: The base queryset containing all Team objects.
+            permission_classes: A list of permission classes applied to the view.
+            serializer_class: Specifies the serializer used to serialize Team objects.
+
+        Methods:
+            list:
+                Handles GET requests to retrieve a list of team objects. Logs actions
+                such as retrieval attempts, success, and errors during execution.
+
+        Raises:
+            Exception: Catches and logs any exception that occurs during the retrieval
+            and returns an HTTP 500 response with an error message.
       tags:
       - users
       security:
@@ -1110,6 +1572,57 @@ components:
   schemas:
     BaseTask:
       type: object
+      description: |-
+        Serializer for Task model.
+
+        This class is responsible for serializing and validating Task model
+        objects for API operations. It includes methods for validating various
+        fields, retrieving related objects, and customizing serialized
+        representations. The purpose of this serializer is to ensure that all
+        data operations on the Task model are consistent with the business
+        logic and data integrity requirements.
+
+        Attributes:
+            id (serializers.IntegerField): Read-only field representing the
+            Task ID.
+            team (serializers.IntegerField): Read-only field representing the
+            Team ID associated with the task.
+            order (serializers.IntegerField): Read-only field representing the
+            Order ID associated with the task.
+            status (serializers.CharField): Read-only field representing the
+            status of the task.
+
+        Methods:
+            validate(attrs: dict) -> dict:
+                Validates the given attributes dictionary against business
+                requirements. Performs various validations on title,
+                description, deadline, and status. Also retrieves and validates
+                `team` and `order` values based on the input data.
+            _validate_len_title(attrs: dict) -> None:
+                Validates the length of the input title field. Ensures it is
+                between 5 and 255 characters.
+            _validate_len_description(attrs: dict) -> None:
+                Validates the length of the input description field. Ensures it
+                is between 10 and 5000 characters.
+            _get_team_and_order(attrs: dict) -> list | None:
+                Retrieves `team` and `order` based on the executor's details.
+                Returns a list containing the team ID and order ID.
+            _validate_deadline(attrs: dict) -> None:
+                Ensures the deadline date, if present, is not earlier than
+                today.
+            _validate_status(attrs: dict) -> None:
+                Validates that the provided status is one of the allowed
+                statuses (PENDING, ACTIVE, or CLOSED).
+            _get_user_team(user):
+                Retrieves the user's team based on membership or leadership.
+                Raises validation errors if no team is found.
+            _get_team_order(team) -> int | None:
+                Retrieves the active order associated with the team. Raises
+                validation errors if no order exists or if the team's order is
+                invalid.
+            to_representation(instance: Task) -> dict:
+                Converts a Task instance into a dictionary format for API
+                response.
       properties:
         id:
           type: integer
@@ -1144,6 +1657,37 @@ components:
       - title
     Chat:
       type: object
+      description: |-
+        Serializer for the Chat model.
+
+        This serializer is responsible for serializing and deserializing the Chat model
+        instances into JSON format, as well as performing validation and providing
+        custom fields. It defines the structure for interacting with Chat instances via
+        API endpoints.
+
+        Attributes:
+            name (serializers.CharField): The name of the chat. This field is required.
+            is_group (serializers.BooleanField): Indicates whether the chat is a group
+                chat. Defaults to False.
+            chat_id (serializers.IntegerField): The ID of the chat. This field is
+                optional.
+            participants (serializers.SerializerMethodField): A custom field that
+                serializes the participants of the chat into a list of dictionaries,
+                including user IDs and usernames.
+
+        Methods:
+            get_participants(obj):
+                Retrieves and serializes the participants related to the given Chat
+                instance. Accesses participant objects and converts them into a list
+                of dictionaries with user details for API consumption.
+
+        Meta:
+            model: Refers to the Chat model being serialized.
+            fields: Specifies the set of fields to include in the serialization. This
+                includes "name", "chat_id", "is_group", and "participants".
+            read_only_fields: Identifies fields that are read-only during
+                serialization. The "created_at" field is marked as read-only to
+                safeguard its integrity and avoid modification during updates.
       properties:
         name:
           type: string
@@ -1160,6 +1704,21 @@ components:
       - participants
     CreateChat:
       type: object
+      description: |-
+        Serializer for creating a chat.
+
+        This serializer provides validation and creation logic for chat objects. It ensures
+        that the constraints for group and non-group chats are respected. Non-group chats
+        cannot have more than one participant apart from the creator. The serializer also
+        handles the creation of participants for the chat and designates the creator as the
+        admin of the chat. Finally, it prepares a structured response with the created chat's
+        details.
+
+        Methods:
+            validate: Ensures valid data for creating a chat, particularly ensuring that
+            non-group chats cannot have more than one participant.
+            create: Handles the creation of the Chat object, its related Participants, and
+            prepares the response for the created chat.
       properties:
         name:
           type: string
@@ -1176,6 +1735,21 @@ components:
       - participants
     CreateOrder:
       type: object
+      description: |-
+        Handles the serialization and creation of Order objects.
+
+        This class extends the OrderSerializer and provides a customized create
+        method to handle the creation of Order objects with additional context from
+        the request, such as dynamically assigning the owner of the order based on
+        the authenticated user.
+
+        Methods:
+            create(validated_data):
+                Overrides the base serializer's create method to handle the creation
+                of an Order instance using validated data and additional context.
+
+        Attributes:
+            Inherited attributes from OrderSerializer.
       properties:
         id:
           type: integer
@@ -1238,6 +1812,21 @@ components:
       - updatedAt
     CreateTask:
       type: object
+      description: |-
+        Serializer class for creating a new task.
+
+        This class is responsible for handling the creation of new Task objects. It extends
+        the functionality of BaseTaskSerializer and uses validated input data to construct
+        and save a Task instance.
+
+        Attributes
+        ----------
+        None
+
+        Methods
+        -------
+        create(validated_data: BaseTaskSerializer) -> Task
+            Creates and returns a new Task instance based on the validated input data.
       properties:
         id:
           type: integer
@@ -1272,6 +1861,35 @@ components:
       - title
     CreateTeam:
       type: object
+      description: |-
+        A serializer for creating and managing a Team object.
+
+        The serializer is responsible for handling the validation and creation of a team,
+        along with its members. It ensures a leader is assigned to the team and manages
+        the association of members, including updating their status as team members.
+
+        Attributes
+        ----------
+        leader : int, optional
+            The ID of the team leader. This is not a required field because the leader is
+            automatically set to the current logged-in user.
+        list_of_members : list of int
+            A list of user IDs to be added as members to the team. This is a write-only field
+            and will not be returned in serialized responses.
+
+        Meta
+        ----
+        model : Team
+            Specifies that this serializer is associated with the Team model.
+        fields : list of str
+            Specifies the fields to be serialized: `id`, `leader`, `list_of_members`, and `status`.
+
+        Methods
+        -------
+        create(validated_data)
+            Creates and returns a new Team object using the validated data. Assigns the currently
+            logged-in user as the team leader, associates the provided members' IDs, updates
+            member statuses, and ensures the team object is refreshed before returning serialized data.
       properties:
         id:
           type: integer
@@ -1291,6 +1909,22 @@ components:
       - list_of_members
     Dashboard:
       type: object
+      description: |-
+        Represents a serializer for Dashboard-specific order data.
+
+        This class is an extension of the OrderSerializer and provides custom
+        representation for orders for Dashboard purposes. It modifies the
+        serialization by formatting date fields and extracting specific data
+        points to better suit the needs of the Dashboard display.
+
+        Attributes
+        ----------
+        None
+
+        Methods
+        -------
+        to_representation(instance: Order) -> dict
+            Customizes the serialization of an Order instance for Dashboard representation.
       properties:
         id:
           type: integer
@@ -1353,6 +1987,45 @@ components:
       - updatedAt
     EditTask:
       type: object
+      description: |-
+        Serializer class that modifies existing task instances.
+
+        This class is responsible for serializing and deserializing data related to
+        tasks. It allows partial updates to task instances by validating and applying
+        changes to provided fields such as title, description, executor, deadline, and
+        status. The class includes custom validation logic and handles updates to the
+        task model's attributes while ensuring data integrity.
+
+        Attributes
+        ----------
+        title: str
+            The title of the task (optional).
+        description: str
+            The detailed description of the task (optional).
+        executor: str
+            The identifier for the executor of the task (optional).
+        deadline: date
+            The deadline for completing the task (optional).
+        status: str
+            The current status of the task (optional).
+
+        Methods
+        -------
+        validate(attrs: dict) -> dict
+            Validates the provided attributes for the task. Ensures fields such as
+            title, description, executor, deadline, and status meet specific
+            requirements.
+
+        update(instance: Task, validated_data: dict) -> Task
+            Updates a given task instance with validated data. Modifies the relevant
+            fields based on provided input, applies changes to the database, and returns
+            the updated task instance.
+
+        Raises
+        ------
+        ValidationError
+            Raised by internal methods during validation if a field does not meet the
+            required criteria.
       properties:
         id:
           type: integer
@@ -1380,6 +2053,38 @@ components:
       - team
     EditUser:
       type: object
+      description: |-
+        Serializer class for editing user information.
+
+        This class is a serializer that facilitates handling user update operations by
+        validating and serializing the fields required for updating an existing user in
+        the system. The serializer is designed to include validation logic to ensure that
+        usernames, emails, and phone numbers are appropriately formatted and unique, while
+        providing the capability to map fields for customizing their representation.
+
+        Attributes:
+            username (serializers.CharField): The username of the user.
+            email (serializers.EmailField): The email address of the user.
+            firstName (serializers.CharField): The first name of the user, mapped from the
+                "first_name" field in the model.
+            lastName (serializers.CharField): The last name of the user, mapped from the
+                "last_name" field in the model.
+            phoneNumber (serializers.CharField): The phone number of the user, mapped from
+                the "phone_number" field in the model.
+
+        Methods:
+            validate:
+                Validates the serialized user data to ensure that all fields meet the
+                required conditions including uniqueness of username and email as well as
+                validity of the phone number format.
+
+            validate_phone_number:
+                Static method for validating and formatting the provided phone number as per
+                the international E.164 format.
+
+            update:
+                Updates the user instance with validated data, safely handling optional
+                fields and persisting changes to the database.
       properties:
         username:
           type: string
@@ -1400,6 +2105,19 @@ components:
       - username
     Input:
       type: object
+      description: |-
+        Serializer for handling input data validation and transformation.
+
+        This class is used for serializing and deserializing input data, often
+        received in a request. It ensures that the required fields are properly
+        formatted and validated as defined. Typically utilized in Django REST
+        Framework-based APIs to manage user input.
+
+        Attributes:
+        code (str): A field that represents some input code, not mandatory.
+        error (str): A field that represents error messages, not mandatory.
+        state (str): A field that represents the state of an object, not
+                     mandatory.
       properties:
         code:
           type: string
@@ -1409,6 +2127,21 @@ components:
           type: string
     Login:
       type: object
+      description: |-
+        Serializes and validates login data for user authentication.
+
+        This class is used to validate and serialize login credentials, ensuring that
+        the required fields (username, password, and user_agent) are provided. It also
+        authenticates the user using the provided credentials and attaches the user
+        object to the validated data if authentication is successful.
+
+        Attributes:
+            username: CharField that captures the username provided by the user.
+            password: CharField that captures the password provided, write-only.
+            user_agent: CharField that captures the user agent string.
+
+        Methods:
+            validate: Validates login credentials and authenticates the user.
       properties:
         username:
           type: string
@@ -1423,6 +2156,19 @@ components:
       - username
     OrderManagement:
       type: object
+      description: |-
+        Serializer for managing Order objects.
+
+        This serializer is designed to handle the validation, update, and
+        representation of `Order` objects. It includes various fields and
+        functions for integrating and performing operations on `Order` instances,
+        such as updating order status, assigning teams, and returning
+        representations in a specified format.
+
+        Attributes:
+            accepted: BooleanField indicating whether the order has been accepted.
+            team: IntegerField representing the team's ID, mapped to the source `team.id`.
+            status: CharField indicating the current status of the order.
       properties:
         accepted:
           type: boolean
@@ -1436,6 +2182,15 @@ components:
       - team
     OrdersList:
       type: object
+      description: |-
+        Responsible for serializing a collection of order instances into a specific
+        format for external representation.
+
+        This serializer extends the OrderSerializer class and overrides its
+        representation method to transform database models into a format suitable
+        for API responses or other external uses. The serialization includes
+        attributes such as ID, name, description, deadline, status, and a
+        formatted creation date.
       properties:
         id:
           type: integer
@@ -1607,6 +2362,45 @@ components:
       - uid
     PatchedEditTask:
       type: object
+      description: |-
+        Serializer class that modifies existing task instances.
+
+        This class is responsible for serializing and deserializing data related to
+        tasks. It allows partial updates to task instances by validating and applying
+        changes to provided fields such as title, description, executor, deadline, and
+        status. The class includes custom validation logic and handles updates to the
+        task model's attributes while ensuring data integrity.
+
+        Attributes
+        ----------
+        title: str
+            The title of the task (optional).
+        description: str
+            The detailed description of the task (optional).
+        executor: str
+            The identifier for the executor of the task (optional).
+        deadline: date
+            The deadline for completing the task (optional).
+        status: str
+            The current status of the task (optional).
+
+        Methods
+        -------
+        validate(attrs: dict) -> dict
+            Validates the provided attributes for the task. Ensures fields such as
+            title, description, executor, deadline, and status meet specific
+            requirements.
+
+        update(instance: Task, validated_data: dict) -> Task
+            Updates a given task instance with validated data. Modifies the relevant
+            fields based on provided input, applies changes to the database, and returns
+            the updated task instance.
+
+        Raises
+        ------
+        ValidationError
+            Raised by internal methods during validation if a field does not meet the
+            required criteria.
       properties:
         id:
           type: integer
@@ -1630,6 +2424,38 @@ components:
           format: date
     PatchedEditUser:
       type: object
+      description: |-
+        Serializer class for editing user information.
+
+        This class is a serializer that facilitates handling user update operations by
+        validating and serializing the fields required for updating an existing user in
+        the system. The serializer is designed to include validation logic to ensure that
+        usernames, emails, and phone numbers are appropriately formatted and unique, while
+        providing the capability to map fields for customizing their representation.
+
+        Attributes:
+            username (serializers.CharField): The username of the user.
+            email (serializers.EmailField): The email address of the user.
+            firstName (serializers.CharField): The first name of the user, mapped from the
+                "first_name" field in the model.
+            lastName (serializers.CharField): The last name of the user, mapped from the
+                "last_name" field in the model.
+            phoneNumber (serializers.CharField): The phone number of the user, mapped from
+                the "phone_number" field in the model.
+
+        Methods:
+            validate:
+                Validates the serialized user data to ensure that all fields meet the
+                required conditions including uniqueness of username and email as well as
+                validity of the phone number format.
+
+            validate_phone_number:
+                Static method for validating and formatting the provided phone number as per
+                the international E.164 format.
+
+            update:
+                Updates the user instance with validated data, safely handling optional
+                fields and persisting changes to the database.
       properties:
         username:
           type: string
@@ -1644,6 +2470,19 @@ components:
           type: string
     PatchedOrderManagement:
       type: object
+      description: |-
+        Serializer for managing Order objects.
+
+        This serializer is designed to handle the validation, update, and
+        representation of `Order` objects. It includes various fields and
+        functions for integrating and performing operations on `Order` instances,
+        such as updating order status, assigning teams, and returning
+        representations in a specified format.
+
+        Attributes:
+            accepted: BooleanField indicating whether the order has been accepted.
+            team: IntegerField representing the team's ID, mapped to the source `team.id`.
+            status: CharField indicating the current status of the order.
       properties:
         accepted:
           type: boolean
@@ -1653,6 +2492,21 @@ components:
           type: string
     PatchedUpdateChat:
       type: object
+      description: |-
+        Serializer class for updating chat instances.
+
+        This serializer provides functionality to update the name and participant list of
+        a chat instance. It supports handling group chats by managing participants to be added
+        or removed. Additionally, it allows the chat instance to be deleted via a specific action.
+
+        Attributes:
+            name: The name of the chat. It's optional to provide.
+            is_group: Boolean flag indicating whether the chat is a group chat.
+            chat_id: The unique identifier of the chat instance. It's optional to provide.
+            participants: A list of participants in JSON format. It's optional to provide.
+
+        Methods:
+            update: Handles updating chat instance attributes based on input data.
       properties:
         name:
           type: string
@@ -1664,6 +2518,24 @@ components:
         participants: {}
     PatchedUpdateOrder:
       type: object
+      description: |-
+        Serializer for updating order details.
+
+        This serializer is designed for updating fields in an order object while
+        validating the input data. It allows partial updates for specific fields (name,
+        description, deadline) and provides functionality to handle a delete action by
+        scheduling the order for deletion. It is a specialized extension of the
+        OrderSerializer class.
+        Attributes:
+            name (serializers.CharField): Optional field for updating the name of the
+                order.
+            description (serializers.CharField): Optional field for updating the
+                description of the order.
+            deadline (serializers.DateField): Optional field for updating the deadline
+                of the order.
+            action (serializers.CharField): Optional field specifying an action to be
+                taken (e.g., "delete").
+            ALLOWED_FIELDS (list[str]): List of fields allowed for updating.
       properties:
         id:
           type: integer
@@ -1712,6 +2584,42 @@ components:
           type: string
     PatchedUpdateTeam:
       type: object
+      description: |-
+        Handles the serialization and validation of data for updating a team.
+
+        This class extends the `TeamSerializer` to provide additional fields and logic
+        specific to updating team information, such as updating the team leader, team
+        members, and status. It ensures data integrity by validating the presence of
+        a leader and members, and verifies that the leader remains a member of the team.
+        It also manages updates to the membership status of users when team members
+        are added or removed.
+
+        Attributes
+        ----------
+        leader_id : serializers.IntegerField
+            The ID of the team leader.
+        list_of_members : serializers.ListField
+            List of member IDs belonging to the team. Write-only and required for updating.
+        status : serializers.CharField
+            Status of the team as a string. Allows updates to the team's status.
+
+        Meta
+        ----
+        model : Team
+            Links the serializer to the `Team` model.
+        fields : list[str]
+            Specifies the fields included in the serializer: `leader_id`, `status`, and
+            `list_of_members`.
+
+        Methods
+        -------
+        validate(attrs: dict) -> dict
+            Validates the provided attributes for updating a team. Ensures mandatory
+            fields are present and that the leader remains in the member list.
+        update(instance, validated_data)
+            Updates an existing team instance with validated data. Handles changes to
+            the leader, status, and member list. Updates user membership statuses
+            accordingly.
       properties:
         leader_id:
           type: integer
@@ -1749,6 +2657,41 @@ components:
           maxLength: 150
     Registration:
       type: object
+      description: |-
+        Represents a serializer for user registration handling.
+
+        This serializer defines the fields and validation logic required for a
+        user registration process. It ensures that the provided user information
+        complies with the necessary requirements, including unique constraints
+        and password validation criteria. Additionally, the serializer handles
+        password confirmation to avoid mismatched inputs. The creation of a new
+        user instance is managed through the `create` method.
+
+        Attributes:
+            username: A required CharField for the user's username.
+            firstName: A required CharField sourced from the user's first_name.
+            lastName: A required CharField sourced from the user's last_name.
+            email: A required EmailField ensuring a unique email for the user in the database.
+            password: A required CharField, write-only, for setting the user's password.
+            password2: A required CharField, write-only, for confirming the user's password.
+            isTeamMember: A BooleanField sourced from is_team_member, optional, defaults to False.
+            isAdmin: A BooleanField sourced from is_admin, optional, defaults to False.
+            isStaff: A BooleanField sourced from is_staff, optional, defaults to False.
+            phoneNumber: An optional CharField sourced from phone_number with unique constraints.
+
+        Methods:
+            validate(attrs: dict):
+                Validates the provided attributes. Ensures passwords match, checks
+                password security using the password validator, and validates the phone number
+                if provided. Returns the validated attributes.
+
+            create(validated_data):
+                Creates and returns a `CustomUser` object with the validated data.
+                Password is hashed before saving the user.
+
+            validate_phone_number(phone_number: str) -> str | None:
+                Validates and formats the provided phone number using the phonenumbers library.
+                Raises a validation error if the phone number is invalid.
       properties:
         username:
           type: string
@@ -1803,6 +2746,30 @@ components:
         * `closed` - Closed
     Team:
       type: object
+      description: |-
+        This serializer is responsible for handling serialization and deserialization
+        of Team model instances into JSON and vice versa. It defines mappings for
+        attributes related to a team, including the team leader, team status, and
+        a generated list of team members.
+
+        The serializer is designed to expose specific fields of the Team model while
+        allowing customization for certain attributes like leader and list_of_members.
+        It enables controlled access and mutation of these values during the API
+        interaction.
+
+        Attributes:
+            leader: A character field that maps to the username of the team's leader.
+            status: A character field that represents the current status of the team.
+            list_of_members: A field created through a serializer method that generates
+                a list of usernames of all the members in the team.
+
+        Methods:
+            get_list_of_members: A method to generate a list of team members' usernames
+                dynamically for the given Team instance.
+
+        Meta:
+            Specifies the associated model as Team and declares the serializer fields
+            to include id, leader, list_of_members, and status.
       properties:
         id:
           type: integer
@@ -1821,6 +2788,21 @@ components:
       - status
     UpdateChat:
       type: object
+      description: |-
+        Serializer class for updating chat instances.
+
+        This serializer provides functionality to update the name and participant list of
+        a chat instance. It supports handling group chats by managing participants to be added
+        or removed. Additionally, it allows the chat instance to be deleted via a specific action.
+
+        Attributes:
+            name: The name of the chat. It's optional to provide.
+            is_group: Boolean flag indicating whether the chat is a group chat.
+            chat_id: The unique identifier of the chat instance. It's optional to provide.
+            participants: A list of participants in JSON format. It's optional to provide.
+
+        Methods:
+            update: Handles updating chat instance attributes based on input data.
       properties:
         name:
           type: string
@@ -1832,6 +2814,24 @@ components:
         participants: {}
     UpdateOrder:
       type: object
+      description: |-
+        Serializer for updating order details.
+
+        This serializer is designed for updating fields in an order object while
+        validating the input data. It allows partial updates for specific fields (name,
+        description, deadline) and provides functionality to handle a delete action by
+        scheduling the order for deletion. It is a specialized extension of the
+        OrderSerializer class.
+        Attributes:
+            name (serializers.CharField): Optional field for updating the name of the
+                order.
+            description (serializers.CharField): Optional field for updating the
+                description of the order.
+            deadline (serializers.DateField): Optional field for updating the deadline
+                of the order.
+            action (serializers.CharField): Optional field specifying an action to be
+                taken (e.g., "delete").
+            ALLOWED_FIELDS (list[str]): List of fields allowed for updating.
       properties:
         id:
           type: integer
@@ -1890,6 +2890,42 @@ components:
       - updatedAt
     UpdateTeam:
       type: object
+      description: |-
+        Handles the serialization and validation of data for updating a team.
+
+        This class extends the `TeamSerializer` to provide additional fields and logic
+        specific to updating team information, such as updating the team leader, team
+        members, and status. It ensures data integrity by validating the presence of
+        a leader and members, and verifies that the leader remains a member of the team.
+        It also manages updates to the membership status of users when team members
+        are added or removed.
+
+        Attributes
+        ----------
+        leader_id : serializers.IntegerField
+            The ID of the team leader.
+        list_of_members : serializers.ListField
+            List of member IDs belonging to the team. Write-only and required for updating.
+        status : serializers.CharField
+            Status of the team as a string. Allows updates to the team's status.
+
+        Meta
+        ----
+        model : Team
+            Links the serializer to the `Team` model.
+        fields : list[str]
+            Specifies the fields included in the serializer: `leader_id`, `status`, and
+            `list_of_members`.
+
+        Methods
+        -------
+        validate(attrs: dict) -> dict
+            Validates the provided attributes for updating a team. Ensures mandatory
+            fields are present and that the leader remains in the member list.
+        update(instance, validated_data)
+            Updates an existing team instance with validated data. Handles changes to
+            the leader, status, and member list. Updates user membership statuses
+            accordingly.
       properties:
         leader_id:
           type: integer

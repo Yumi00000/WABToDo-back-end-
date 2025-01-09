@@ -9,6 +9,58 @@ from users.models import Team, CustomUser
 
 
 class BaseTaskSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Task model.
+
+    This class is responsible for serializing and validating Task model
+    objects for API operations. It includes methods for validating various
+    fields, retrieving related objects, and customizing serialized
+    representations. The purpose of this serializer is to ensure that all
+    data operations on the Task model are consistent with the business
+    logic and data integrity requirements.
+
+    Attributes:
+        id (serializers.IntegerField): Read-only field representing the
+        Task ID.
+        team (serializers.IntegerField): Read-only field representing the
+        Team ID associated with the task.
+        order (serializers.IntegerField): Read-only field representing the
+        Order ID associated with the task.
+        status (serializers.CharField): Read-only field representing the
+        status of the task.
+
+    Methods:
+        validate(attrs: dict) -> dict:
+            Validates the given attributes dictionary against business
+            requirements. Performs various validations on title,
+            description, deadline, and status. Also retrieves and validates
+            `team` and `order` values based on the input data.
+        _validate_len_title(attrs: dict) -> None:
+            Validates the length of the input title field. Ensures it is
+            between 5 and 255 characters.
+        _validate_len_description(attrs: dict) -> None:
+            Validates the length of the input description field. Ensures it
+            is between 10 and 5000 characters.
+        _get_team_and_order(attrs: dict) -> list | None:
+            Retrieves `team` and `order` based on the executor's details.
+            Returns a list containing the team ID and order ID.
+        _validate_deadline(attrs: dict) -> None:
+            Ensures the deadline date, if present, is not earlier than
+            today.
+        _validate_status(attrs: dict) -> None:
+            Validates that the provided status is one of the allowed
+            statuses (PENDING, ACTIVE, or CLOSED).
+        _get_user_team(user):
+            Retrieves the user's team based on membership or leadership.
+            Raises validation errors if no team is found.
+        _get_team_order(team) -> int | None:
+            Retrieves the active order associated with the team. Raises
+            validation errors if no order exists or if the team's order is
+            invalid.
+        to_representation(instance: Task) -> dict:
+            Converts a Task instance into a dictionary format for API
+            response.
+    """
     id = serializers.IntegerField(read_only=True)
     team = serializers.IntegerField(read_only=True)
     order = serializers.IntegerField(read_only=True)
@@ -88,7 +140,23 @@ class BaseTaskSerializer(serializers.ModelSerializer):
 
 
 class CreateTaskSerializer(BaseTaskSerializer):
+    """
+    Serializer class for creating a new task.
 
+    This class is responsible for handling the creation of new Task objects. It extends
+    the functionality of BaseTaskSerializer and uses validated input data to construct
+    and save a Task instance.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    create(validated_data: BaseTaskSerializer) -> Task
+        Creates and returns a new Task instance based on the validated input data.
+
+    """
     def create(self, validated_data: BaseTaskSerializer) -> Task:
         task = Task.objects.create(
             title=validated_data["title"],
@@ -103,6 +171,46 @@ class CreateTaskSerializer(BaseTaskSerializer):
 
 
 class EditTaskSerializer(BaseTaskSerializer):
+    """
+    Serializer class that modifies existing task instances.
+
+    This class is responsible for serializing and deserializing data related to
+    tasks. It allows partial updates to task instances by validating and applying
+    changes to provided fields such as title, description, executor, deadline, and
+    status. The class includes custom validation logic and handles updates to the
+    task model's attributes while ensuring data integrity.
+
+    Attributes
+    ----------
+    title: str
+        The title of the task (optional).
+    description: str
+        The detailed description of the task (optional).
+    executor: str
+        The identifier for the executor of the task (optional).
+    deadline: date
+        The deadline for completing the task (optional).
+    status: str
+        The current status of the task (optional).
+
+    Methods
+    -------
+    validate(attrs: dict) -> dict
+        Validates the provided attributes for the task. Ensures fields such as
+        title, description, executor, deadline, and status meet specific
+        requirements.
+
+    update(instance: Task, validated_data: dict) -> Task
+        Updates a given task instance with validated data. Modifies the relevant
+        fields based on provided input, applies changes to the database, and returns
+        the updated task instance.
+
+    Raises
+    ------
+    ValidationError
+        Raised by internal methods during validation if a field does not meet the
+        required criteria.
+    """
     title = serializers.CharField(required=False)
     description = serializers.CharField(required=False)
     executor = serializers.CharField(required=False)

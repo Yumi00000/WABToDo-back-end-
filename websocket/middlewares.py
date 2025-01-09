@@ -8,6 +8,15 @@ from users.models import CustomUser
 
 @sync_to_async
 def get_user_from_id(user_id):
+    """
+    Fetch a user by their ID asynchronously, or return an AnonymousUser if no user with the
+    specified ID exists.
+
+    @param user_id: The unique identifier of the user to fetch.
+    @type user_id: int
+
+    @return: The user object with the specified ID if found, otherwise an AnonymousUser.
+    """
     try:
         return CustomUser.objects.get(id=user_id)
     except CustomUser.DoesNotExist:
@@ -16,7 +25,26 @@ def get_user_from_id(user_id):
 
 class WebSocketJWTAuthMiddleware:
     """
-    Custom middleware to authenticate WebSocket connections using JWT.
+    Middleware for authenticating WebSocket connections using JWT.
+
+    This middleware is designed to authenticate WebSocket connections
+    by extracting a JWT token from the query string of the connection
+    and validating it. The decoded payload of the JWT token is used to
+    set the authenticated user in the connection scope. If the token
+    is missing, expired, or invalid, the user is set as an anonymous
+    user. This middleware is specifically intended for integration
+    within WebSocket-based applications.
+
+    Attributes:
+        app (Any): A callable representing the application or ASGI app
+        that this middleware wraps. It acts as the next layer in the
+        middleware stack or the final application.
+
+    Methods:
+        __call__: Asynchronous callable method that processes the
+        WebSocket connection, validates the JWT token, assigns the
+        corresponding user to the connection scope, and forwards the
+        connection to the next layer or application.
     """
 
     def __init__(self, app):

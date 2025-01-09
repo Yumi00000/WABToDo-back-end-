@@ -7,6 +7,14 @@ from core.service import (
 
 
 class GoogleLoginRedirectApi(View):
+    """Handle Google OAuth2 login redirection process.
+
+    This class encapsulates the logic required to redirect users to Google's OAuth2
+    authorization endpoint. It establishes a login flow using an external service,
+    retrieves the authorization URL and state, and stores the state information into
+    the user's session for later use. This process is part of the OAuth2 workflow
+    to authenticate users via Google services.
+    """
     def get(self, request, *args, **kwargs):
         google_login_flow = GoogleRawLoginFlowService()
 

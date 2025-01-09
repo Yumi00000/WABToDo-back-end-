@@ -13,6 +13,42 @@ from users.models import CustomUser, Team, Chat, Participant
 
 
 class RegistrationSerializer(serializers.ModelSerializer, PasswordValidator):
+    """
+    Represents a serializer for user registration handling.
+
+    This serializer defines the fields and validation logic required for a
+    user registration process. It ensures that the provided user information
+    complies with the necessary requirements, including unique constraints
+    and password validation criteria. Additionally, the serializer handles
+    password confirmation to avoid mismatched inputs. The creation of a new
+    user instance is managed through the `create` method.
+
+    Attributes:
+        username: A required CharField for the user's username.
+        firstName: A required CharField sourced from the user's first_name.
+        lastName: A required CharField sourced from the user's last_name.
+        email: A required EmailField ensuring a unique email for the user in the database.
+        password: A required CharField, write-only, for setting the user's password.
+        password2: A required CharField, write-only, for confirming the user's password.
+        isTeamMember: A BooleanField sourced from is_team_member, optional, defaults to False.
+        isAdmin: A BooleanField sourced from is_admin, optional, defaults to False.
+        isStaff: A BooleanField sourced from is_staff, optional, defaults to False.
+        phoneNumber: An optional CharField sourced from phone_number with unique constraints.
+
+    Methods:
+        validate(attrs: dict):
+            Validates the provided attributes. Ensures passwords match, checks
+            password security using the password validator, and validates the phone number
+            if provided. Returns the validated attributes.
+
+        create(validated_data):
+            Creates and returns a `CustomUser` object with the validated data.
+            Password is hashed before saving the user.
+
+        validate_phone_number(phone_number: str) -> str | None:
+            Validates and formats the provided phone number using the phonenumbers library.
+            Raises a validation error if the phone number is invalid.
+    """
     username = serializers.CharField(required=True, trim_whitespace=False)
     firstName = serializers.CharField(
         source="first_name",
@@ -100,6 +136,23 @@ class RegistrationSerializer(serializers.ModelSerializer, PasswordValidator):
 
 
 class LoginSerializer(serializers.Serializer):
+    """
+    Serializes and validates login data for user authentication.
+
+    This class is used to validate and serialize login credentials, ensuring that
+    the required fields (username, password, and user_agent) are provided. It also
+    authenticates the user using the provided credentials and attaches the user
+    object to the validated data if authentication is successful.
+
+    Attributes:
+        username: CharField that captures the username provided by the user.
+        password: CharField that captures the password provided, write-only.
+        user_agent: CharField that captures the user agent string.
+
+    Methods:
+        validate: Validates login credentials and authenticates the user.
+
+    """
     username = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True)
     user_agent = serializers.CharField(required=True)
@@ -122,6 +175,39 @@ class LoginSerializer(serializers.Serializer):
 
 
 class EditUserSerializer(serializers.ModelSerializer):
+    """
+    Serializer class for editing user information.
+
+    This class is a serializer that facilitates handling user update operations by
+    validating and serializing the fields required for updating an existing user in
+    the system. The serializer is designed to include validation logic to ensure that
+    usernames, emails, and phone numbers are appropriately formatted and unique, while
+    providing the capability to map fields for customizing their representation.
+
+    Attributes:
+        username (serializers.CharField): The username of the user.
+        email (serializers.EmailField): The email address of the user.
+        firstName (serializers.CharField): The first name of the user, mapped from the
+            "first_name" field in the model.
+        lastName (serializers.CharField): The last name of the user, mapped from the
+            "last_name" field in the model.
+        phoneNumber (serializers.CharField): The phone number of the user, mapped from
+            the "phone_number" field in the model.
+
+    Methods:
+        validate:
+            Validates the serialized user data to ensure that all fields meet the
+            required conditions including uniqueness of username and email as well as
+            validity of the phone number format.
+
+        validate_phone_number:
+            Static method for validating and formatting the provided phone number as per
+            the international E.164 format.
+
+        update:
+            Updates the user instance with validated data, safely handling optional
+            fields and persisting changes to the database.
+    """
     username = serializers.CharField()
     email = serializers.EmailField()
     firstName = serializers.CharField(
@@ -174,7 +260,23 @@ class EditUserSerializer(serializers.ModelSerializer):
 
 
 class DashboardSerializer(OrderSerializer):
+    """
+    Represents a serializer for Dashboard-specific order data.
 
+    This class is an extension of the OrderSerializer and provides custom
+    representation for orders for Dashboard purposes. It modifies the
+    serialization by formatting date fields and extracting specific data
+    points to better suit the needs of the Dashboard display.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    to_representation(instance: Order) -> dict
+        Customizes the serialization of an Order instance for Dashboard representation.
+    """
     def to_representation(self, instance: Order) -> dict:
         created_at = change_date_format(instance.created_at)
 
@@ -189,6 +291,32 @@ class DashboardSerializer(OrderSerializer):
 
 
 class TeamSerializer(serializers.ModelSerializer):
+    """
+    This serializer is responsible for handling serialization and deserialization
+    of Team model instances into JSON and vice versa. It defines mappings for
+    attributes related to a team, including the team leader, team status, and
+    a generated list of team members.
+
+    The serializer is designed to expose specific fields of the Team model while
+    allowing customization for certain attributes like leader and list_of_members.
+    It enables controlled access and mutation of these values during the API
+    interaction.
+
+    Attributes:
+        leader: A character field that maps to the username of the team's leader.
+        status: A character field that represents the current status of the team.
+        list_of_members: A field created through a serializer method that generates
+            a list of usernames of all the members in the team.
+
+    Methods:
+        get_list_of_members: A method to generate a list of team members' usernames
+            dynamically for the given Team instance.
+
+    Meta:
+        Specifies the associated model as Team and declares the serializer fields
+        to include id, leader, list_of_members, and status.
+
+    """
     leader = serializers.CharField(source="leader.username", read_only=False)
     status = serializers.CharField(read_only=False)
     list_of_members = serializers.SerializerMethodField()
@@ -203,6 +331,36 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class CreateTeamSerializer(serializers.ModelSerializer):
+    """
+    A serializer for creating and managing a Team object.
+
+    The serializer is responsible for handling the validation and creation of a team,
+    along with its members. It ensures a leader is assigned to the team and manages
+    the association of members, including updating their status as team members.
+
+    Attributes
+    ----------
+    leader : int, optional
+        The ID of the team leader. This is not a required field because the leader is
+        automatically set to the current logged-in user.
+    list_of_members : list of int
+        A list of user IDs to be added as members to the team. This is a write-only field
+        and will not be returned in serialized responses.
+
+    Meta
+    ----
+    model : Team
+        Specifies that this serializer is associated with the Team model.
+    fields : list of str
+        Specifies the fields to be serialized: `id`, `leader`, `list_of_members`, and `status`.
+
+    Methods
+    -------
+    create(validated_data)
+        Creates and returns a new Team object using the validated data. Assigns the currently
+        logged-in user as the team leader, associates the provided members' IDs, updates
+        member statuses, and ensures the team object is refreshed before returning serialized data.
+    """
     leader = serializers.IntegerField(required=False)
     list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True)
 
@@ -232,6 +390,43 @@ class CreateTeamSerializer(serializers.ModelSerializer):
 
 
 class UpdateTeamSerializer(TeamSerializer):
+    """
+    Handles the serialization and validation of data for updating a team.
+
+    This class extends the `TeamSerializer` to provide additional fields and logic
+    specific to updating team information, such as updating the team leader, team
+    members, and status. It ensures data integrity by validating the presence of
+    a leader and members, and verifies that the leader remains a member of the team.
+    It also manages updates to the membership status of users when team members
+    are added or removed.
+
+    Attributes
+    ----------
+    leader_id : serializers.IntegerField
+        The ID of the team leader.
+    list_of_members : serializers.ListField
+        List of member IDs belonging to the team. Write-only and required for updating.
+    status : serializers.CharField
+        Status of the team as a string. Allows updates to the team's status.
+
+    Meta
+    ----
+    model : Team
+        Links the serializer to the `Team` model.
+    fields : list[str]
+        Specifies the fields included in the serializer: `leader_id`, `status`, and
+        `list_of_members`.
+
+    Methods
+    -------
+    validate(attrs: dict) -> dict
+        Validates the provided attributes for updating a team. Ensures mandatory
+        fields are present and that the leader remains in the member list.
+    update(instance, validated_data)
+        Updates an existing team instance with validated data. Handles changes to
+        the leader, status, and member list. Updates user membership statuses
+        accordingly.
+    """
     leader_id = serializers.IntegerField()
     list_of_members = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=True)
     status = serializers.CharField()
@@ -277,6 +472,38 @@ class UpdateTeamSerializer(TeamSerializer):
 
 
 class ChatSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Chat model.
+
+    This serializer is responsible for serializing and deserializing the Chat model
+    instances into JSON format, as well as performing validation and providing
+    custom fields. It defines the structure for interacting with Chat instances via
+    API endpoints.
+
+    Attributes:
+        name (serializers.CharField): The name of the chat. This field is required.
+        is_group (serializers.BooleanField): Indicates whether the chat is a group
+            chat. Defaults to False.
+        chat_id (serializers.IntegerField): The ID of the chat. This field is
+            optional.
+        participants (serializers.SerializerMethodField): A custom field that
+            serializes the participants of the chat into a list of dictionaries,
+            including user IDs and usernames.
+
+    Methods:
+        get_participants(obj):
+            Retrieves and serializes the participants related to the given Chat
+            instance. Accesses participant objects and converts them into a list
+            of dictionaries with user details for API consumption.
+
+    Meta:
+        model: Refers to the Chat model being serialized.
+        fields: Specifies the set of fields to include in the serialization. This
+            includes "name", "chat_id", "is_group", and "participants".
+        read_only_fields: Identifies fields that are read-only during
+            serialization. The "created_at" field is marked as read-only to
+            safeguard its integrity and avoid modification during updates.
+    """
     name = serializers.CharField(required=True)
     is_group = serializers.BooleanField(default=False)
     chat_id = serializers.IntegerField(required=False)
@@ -294,6 +521,22 @@ class ChatSerializer(serializers.ModelSerializer):
 
 
 class CreateChatSerializer(ChatSerializer):
+    """
+    Serializer for creating a chat.
+
+    This serializer provides validation and creation logic for chat objects. It ensures
+    that the constraints for group and non-group chats are respected. Non-group chats
+    cannot have more than one participant apart from the creator. The serializer also
+    handles the creation of participants for the chat and designates the creator as the
+    admin of the chat. Finally, it prepares a structured response with the created chat's
+    details.
+
+    Methods:
+        validate: Ensures valid data for creating a chat, particularly ensuring that
+        non-group chats cannot have more than one participant.
+        create: Handles the creation of the Chat object, its related Participants, and
+        prepares the response for the created chat.
+    """
     def validate(self, attrs: dict) -> dict:
         if attrs.get("is_group") == False and len(attrs.get("participants", [])) > 1:
             raise serializers.ValidationError("You can't add more than one participant to your chat.")
@@ -328,6 +571,22 @@ class CreateChatSerializer(ChatSerializer):
 
 
 class UpdateChatSerializer(serializers.ModelSerializer):
+    """
+    Serializer class for updating chat instances.
+
+    This serializer provides functionality to update the name and participant list of
+    a chat instance. It supports handling group chats by managing participants to be added
+    or removed. Additionally, it allows the chat instance to be deleted via a specific action.
+
+    Attributes:
+        name: The name of the chat. It's optional to provide.
+        is_group: Boolean flag indicating whether the chat is a group chat.
+        chat_id: The unique identifier of the chat instance. It's optional to provide.
+        participants: A list of participants in JSON format. It's optional to provide.
+
+    Methods:
+        update: Handles updating chat instance attributes based on input data.
+    """
     name = serializers.CharField(required=False)
     is_group = serializers.BooleanField(default=False)
     chat_id = serializers.IntegerField(required=False)
@@ -380,6 +639,20 @@ class UpdateChatSerializer(serializers.ModelSerializer):
 
 
 class InputSerializer(serializers.Serializer):
+    """
+    Serializer for handling input data validation and transformation.
+
+    This class is used for serializing and deserializing input data, often
+    received in a request. It ensures that the required fields are properly
+    formatted and validated as defined. Typically utilized in Django REST
+    Framework-based APIs to manage user input.
+
+    Attributes:
+    code (str): A field that represents some input code, not mandatory.
+    error (str): A field that represents error messages, not mandatory.
+    state (str): A field that represents the state of an object, not
+                 mandatory.
+    """
     code = serializers.CharField(required=False)
     error = serializers.CharField(required=False)
     state = serializers.CharField(required=False)

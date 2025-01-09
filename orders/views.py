@@ -11,6 +11,21 @@ from orders.paginations import UnacceptedOrdersPagination
 
 
 class CreateOrderView(generics.CreateAPIView, GenericViewSet, OrderLoggerMixin):
+    """
+    Handles the creation of orders through API while incorporating logging functionality for
+    various events such as creation attempts, successes, validation errors, and general errors.
+
+    This class extends `generics.CreateAPIView` and `GenericViewSet` to provide standard
+    Create API behavior and integrates custom logging logic from `OrderLoggerMixin`. It defines
+    customized behavior for order creation, ensuring detailed logging for operational insights.
+
+    Attributes:
+        queryset: The queryset representing the collection of all `Order` objects.
+        permission_classes: The list of permission classes enforcing `IsAuthenticated` to ensure
+            only authenticated users can create orders.
+        serializer_class: The serializer class `CreateOrderSerializer` which validates data for
+            creating orders and controls serialization/deserialization of input/output data.
+    """
     queryset = Order.objects.all()
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = orders_serializers.CreateOrderSerializer
@@ -34,6 +49,24 @@ class CreateOrderView(generics.CreateAPIView, GenericViewSet, OrderLoggerMixin):
 
 
 class EditOrderView(generics.UpdateAPIView, GenericViewSet, OrderLoggerMixin):
+    """
+    Allows users to update an order with proper logging for update attempts and errors.
+
+    This class serves as a combination view for handling order updates securely. It
+    validates user permissions, updates the order information based on the provided
+    serializer, and logs attempts, errors, and successful updates for diagnostic
+    and audit purposes. It supports custom permissions to ensure only the order owner
+    or an admin can perform updates.
+
+    Attributes:
+        queryset: Order
+            Queryset that provides all Order objects for the view.
+        permission_classes: list
+            List of permission classes used to determine if the user has sufficient
+            permission to update the order. Includes custom and built-in permissions.
+        serializer_class: Type[serializers.Serializer]
+            Serializer class used to validate and process order update data.
+    """
     queryset = Order.objects.all()
     permission_classes = [custom_perm.IsOrderOwnerOrAdmin, permissions.IsAuthenticated]
     serializer_class = orders_serializers.UpdateOrderSerializer
@@ -61,6 +94,23 @@ class EditOrderView(generics.UpdateAPIView, GenericViewSet, OrderLoggerMixin):
 
 
 class GetOrdersListView(generics.ListAPIView, GenericViewSet, OrderLoggerMixin):
+    """
+    Provides a view for retrieving a list of orders with flexible filtering and ordering.
+
+    This class-based view leverages Django's generics.ListAPIView and provides a highly
+    customizable way to retrieve order data. It allows filtering by order status and
+    acceptance status and supports sorting orders by creation date. Additionally, the
+    view logs various aspects of the request and response process, including unaccepted
+    orders, retrieved orders, and any errors encountered during the operation.
+
+    Attributes:
+        permission_classes: A list of permissions, restricting access to the view based
+            on user roles. This view allows access only to admin or staff users.
+        pagination_class: Specifies the pagination class to handle order responses. In
+            this view, unaccepted orders are paginated.
+        serializer_class: Indicates the serializer class used for formatting the output
+            of the orders list.
+    """
     permission_classes = [custom_perm.IsAdminOrStaff]
     pagination_class = UnacceptedOrdersPagination
     serializer_class = orders_serializers.OrdersListSerializer
@@ -100,6 +150,19 @@ class GetOrdersListView(generics.ListAPIView, GenericViewSet, OrderLoggerMixin):
 
 
 class OrderManagementView(generics.UpdateAPIView, GenericViewSet, OrderLoggerMixin):
+    """
+    Manages update operations for orders.
+
+    This class allows authorized users (admin or staff) to update order details through API
+    requests. It includes logging mechanisms to track updates, validation errors, and
+    unexpected errors during the update process.
+
+    Attributes:
+        queryset: Queryset containing all order objects to be managed.
+        permission_classes: List of permission classes that define access control.
+        serializer_class: Serializer used for validating and deserializing input data
+            for order updates.
+    """
     queryset = Order.objects.all()
     permission_classes = [custom_perm.IsAdminOrStaff]
     serializer_class = orders_serializers.OrderManagementSerializer

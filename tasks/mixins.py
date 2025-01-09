@@ -6,6 +6,62 @@ User = get_user_model()
 
 
 class TaskLoggerMixin:
+    """
+    Provides logging functionalities specific to task operations.
+
+    This mixin class is designed to provide logging support for actions related to task
+    management, such as retrieving, creating, updating, and deleting tasks. It captures
+    logging for both successful operations and error cases, ensuring that both user activity
+    and potential issues can be tracked effectively. The class structure and logging provide
+    methods that can be integrated into applications requiring detailed audit logs for task
+    manipulations.
+
+    Attributes:
+        _logger (Logger): Logger instance used for logging events.
+        _log_messages (dict): A dictionary containing predefined log message templates.
+            Keys represent event categories like attempts, successes, warnings, and errors.
+            Values are formatted string templates used in log messages.
+
+    Methods:
+        log_attempt_retrieve_tasks(user: User)
+            Logs an informational message when a user attempts to retrieve tasks.
+
+        log_attempt_create(user: User)
+            Logs an informational message when a user attempts to create a task.
+
+        log_attempt_update(user: User)
+            Logs an informational message when a user attempts to update a task.
+
+        log_attempt_delete(user: User)
+            Logs an informational message when a user attempts to delete a task.
+
+        log_successfully_retrieve(user: User, response_data: dict)
+            Logs an informational message when a user successfully retrieves tasks.
+
+        log_successfully_created(user: User, request_data: dict)
+            Logs an informational message when a user successfully creates a task.
+
+        log_successfully_updated(user: User, request_data: dict)
+            Logs an informational message when a user successfully updates a task.
+
+        log_successfully_deleted(user: User)
+            Logs an informational message when a user successfully deletes a task.
+
+        log_validation_error(error_detail: str)
+            Logs a warning message when a validation error is encountered.
+
+        log_retrieve_error(user: User, error: str)
+            Logs an error message when there is a problem retrieving tasks.
+
+        log_creation_error(user: User, error: str)
+            Logs an error message when there is a problem creating a task.
+
+        log_updating_error(user: User, error: str)
+            Logs an error message when there is a problem updating a task.
+
+        log_deleting_error(user: User, error: str)
+            Logs an error message when there is a problem deleting a task.
+    """
     _logger = logging.getLogger(__name__)
     _log_messages = {
         # Attempts
