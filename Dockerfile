@@ -8,9 +8,9 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /usr/src/service
 
-# Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
 
 # Switch to a non-privileged user if necessary (optional)
 USER 10001

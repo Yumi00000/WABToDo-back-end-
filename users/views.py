@@ -1,6 +1,12 @@
+
 from autobahn.util import generate_user_password
+
+
 from django.contrib.auth import login
+from django.core.signing import Signer, BadSignature
+
 from django.db.models import Q
+from django.http import response as dj_res
 from rest_framework import generics, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,13 +15,64 @@ from rest_framework.viewsets import GenericViewSet
 from core import permissions as c_prm
 from core.service import GoogleRawLoginFlowService
 from orders.models import Order
-from users import serializers
-from users import serializers as user_serializers
+
 from users.mixins import UserLoggerMixin, TeamLoggerMixin
 from users.models import Chat, CustomUser, Participant
 from users.models import CustomAuthToken, Team
-from users.paginations import DashboardPagination
 
+from users import serializers as user_serializers
+from users.mixins import UserLoggerMixin, TeamLoggerMixin
+from users.models import Team, Chat, CustomUser
+
+from users.paginations import DashboardPagination
+from users.utils import send_activation_email, TokenManager
+
+
+class RegistrationView(generics.CreateAPIView, GenericViewSet):
+    queryset = CustomUser.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = user_serializers.RegistrationSerializer
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        user = self.get_queryset().get(email=response.data["email"])
+        send_activation_email(request, user)
+        return response
+
+
+class ActivateView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, user_signed):
+        signer = Signer()
+        try:
+            user_id = signer.unsign(user_signed)
+            user = CustomUser.objects.get(id=user_id)
+        except (BadSignature, CustomUser.DoesNotExist):
+            return Response({"detail": "Invalid or expired link"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_active = True
+        user.save()
+        return Response({"detail": "Account successfully activated"}, status=status.HTTP_200_OK)
+
+
+class LoginView(APIView, TokenManager):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = user_serializers.LoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
+
+        serializer = self.serializer_class(data={**request.data, "user_agent": user_agent})
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.validated_data["user"]
+        token, created = self.get_or_create_token(user, user_agent)
+
+        return Response(
+            {"token": token.key},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 class EditUserView(generics.RetrieveUpdateAPIView, GenericViewSet):
     queryset = CustomUser.objects.all()
@@ -34,7 +91,7 @@ class DashboardView(generics.ListAPIView, GenericViewSet, UserLoggerMixin):
         team_orders = Q(team__list_of_members=user)
         queryset = Order.objects.filter(owner_orders | team_orders).distinct()
 
-        return queryset
+        return queryset.order_by("created_at")
 
     def list(self, request, *args, **kwargs):
         self.log_attempt_retrieve_dashboard()
@@ -114,6 +171,9 @@ class UpdateTeamView(generics.UpdateAPIView, GenericViewSet, TeamLoggerMixin):
             self.log_validation_error(e.detail)
             raise
 
+        except dj_res.Http404:
+            self.log_validation_error("Task not found")
+            raise
         except Exception as e:
             self.log_error_updating(str(e))
             response_error_message = {"error": "An error occurred while updating the team"}
@@ -145,17 +205,13 @@ class TeamView(generics.RetrieveAPIView, GenericViewSet, TeamLoggerMixin):
 
 class CreateChatView(generics.CreateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [
-        permissions.IsAuthenticated,
-    ]
+    permission_classes = [permissions.IsAuthenticated, ]
     serializer_class = user_serializers.CreateChatSerializer
 
 
 class EditChatView(generics.UpdateAPIView, GenericViewSet):
     queryset = Chat.objects.all()
-    permission_classes = [
-        c_prm.IsChatAdmin,
-    ]
+    permission_classes = [c_prm.IsChatAdmin,
     serializer_class = user_serializers.UpdateChatSerializer
 
 
@@ -190,10 +246,13 @@ class ChatListView(generics.ListAPIView, GenericViewSet):
         return Chat.objects.filter(id__in=chat_ids)
 
 
-class GoogleLoginApi(APIView):
+
+class GoogleLoginApi(APIView, TokenManager):
+
     serializer_class = user_serializers.InputSerializer
 
     def get(self, request, *args, **kwargs):
+        user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
         input_serializer = self.serializer_class(data=request.GET)
         input_serializer.is_valid(raise_exception=True)
 
@@ -210,7 +269,6 @@ class GoogleLoginApi(APIView):
             return Response({"error": "Code and state are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         session_state = request.session.get("google_oauth2_state")
-
         if session_state is None:
             return Response({"error": "CSRF check failed."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -227,6 +285,7 @@ class GoogleLoginApi(APIView):
         user_info = google_login_flow.get_user_info(google_tokens=google_tokens)
 
         user_email = id_token_decoded["email"]
+
         password = generate_user_password()
 
         user, created = CustomUser.objects.get_or_create(
@@ -246,9 +305,10 @@ class GoogleLoginApi(APIView):
 
         login(request, user)
 
-        result = {
-            "id_token_decoded": id_token_decoded,
-            "user_info": user_info,
-        }
+        token, created = self.get_or_create_token(user, user_agent)
+        result = {"id_token_decoded": id_token_decoded, "user_info": user_info, "token": token.key}
 
-        return Response(result)
+        return Response(
+            result,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+

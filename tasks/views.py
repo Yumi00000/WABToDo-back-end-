@@ -1,15 +1,16 @@
 from django.db.models import Q
+from django.http import response as dj_res
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, filters, status
+from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-from rest_framework import serializers
 
 from core import permissions as custom_perm
 from tasks import serializers as task_serializers
+from tasks.mixins import TaskLoggerMixin
 from tasks.models import Task
 from tasks.paginations import TasksPagination
-from tasks.mixins import TaskLoggerMixin
 
 
 class GetTeamTasksView(generics.ListAPIView, GenericViewSet, TaskLoggerMixin):
@@ -30,7 +31,7 @@ class GetTeamTasksView(generics.ListAPIView, GenericViewSet, TaskLoggerMixin):
         ).distinct()
 
         if not status_filter:
-            queryset = queryset.filter(status="active")
+            queryset = queryset.filter(status="active").order_by("-deadline")
 
         return queryset
 
@@ -85,11 +86,15 @@ class UpdateTaskView(generics.UpdateAPIView, GenericViewSet, TaskLoggerMixin):
 
         try:
             response = super().update(request, *args, **kwargs)
-            self.log_successfully_updated(request.user, request.data)
+            self.log_successfully_updated(request.user, response.data)
             return response
 
         except serializers.ValidationError as e:
             self.log_validation_error(e.detail)
+            raise
+
+        except dj_res.Http404:
+            self.log_validation_error("Task not found")
             raise
 
         except Exception as e:
