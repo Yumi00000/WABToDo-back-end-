@@ -8,7 +8,7 @@ registration_credentials = {
     "password2": "Weneedmorebananasthan1!",
 }
 
-user_credentials = [
+users_credentials = [
     {
         "id": 1,
         "username": "testuser1",

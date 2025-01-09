@@ -19,9 +19,6 @@ class TestOrderAPI:
         self.edit_order_url = "/api/orders/edit/1/"
         self.order_not_found_url = "/api/orders/edit/2/"
 
-    def test_db(self, db, db_settings):
-        assert db == db_settings
-
     # --- Successful test cases ---
     def test_create_order(self):
         data = {**order_fake_creating_data}
