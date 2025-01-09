@@ -1011,3 +1011,37 @@ paths:
                 example:
                   detail: Authentication credentials were not provided.
 
+  /api/tasks/delete/{id}/:
+    delete:
+      summary: Delete a specific task
+      description: Deletes a task by its ID. Only team members or administrators can perform this action.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the task to delete.
+      responses:
+        "204":
+          description: Task successfully deleted.
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  detail: Authentication credentials were not provided.
+        "500":
+          description: An error occurred while deleting the task.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message.
+              example:
+                error: An error occurred while deleting the task.
