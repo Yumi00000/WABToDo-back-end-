@@ -41,7 +41,7 @@ class TestOrderAPI:
         assert response.data["results"][0]["name"] == order.name
 
     def test_edit_order(self, order):
-        data = {"name": "NewOrderName"}
+        data = {"name": "NewOrderName", "action": "pass"}
         response = self.auth_client.patch(self.edit_order_url, data=data, format="json")
 
         assert response.status_code == status.HTTP_200_OK

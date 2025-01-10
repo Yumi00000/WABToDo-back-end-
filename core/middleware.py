@@ -6,7 +6,26 @@ from users.utils import TokenManager
 
 class TokenCacheMiddleware:
     """
-    Middleware for managing tokens in the cache.
+    Middleware to handle caching and validation of authorization tokens.
+
+    This middleware intercepts incoming HTTP requests to check for the presence of an
+    "Authorization" token in the request headers. If the token is found, it validates the token
+    against a cache and performs additional checks, such as expiration time, to ensure the token
+    is still valid. If the token is invalid or expired, it removes the token from the cache.
+
+    Attributes:
+    get_response (Callable): The function that returns the response for a given HTTP request.
+        It is typically the next middleware or view in the processing chain.
+
+    Responsibilities:
+    - Validate tokens from incoming HTTP requests.
+    - Interact with a cache to check token statuses.
+    - Remove tokens from the cache if they are close to expiration.
+
+    Usage:
+    Use this middleware in the Django middleware stack. It automatically processes HTTP
+    requests to manage token validation and caching, without requiring manual interaction from views.
+
     """
 
     def __init__(self, get_response):

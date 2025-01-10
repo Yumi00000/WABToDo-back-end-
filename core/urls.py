@@ -17,6 +17,7 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -25,9 +26,20 @@ urlpatterns = [
         include(
             (
                 [
-                    path("users/", include(("users.urls", "users"), namespace="users")),  # Add namespace for users
+                    path("users/", include(("users.urls", "users"), namespace="users")),
                     path("orders/", include(("orders.urls", "orders"), namespace="orders")),
                     path("tasks/", include(("tasks.urls", "tasks"), namespace="tasks")),
+
+                    # Schema generation endpoint
+                    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+
+                    # Optional: Swagger UI
+                    path('schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='api:schema'),
+                         name='swagger-ui'),
+
+                    # Optional: Redoc UI
+                    path('schema/redoc/', SpectacularRedocView.as_view(url_name='api:schema'), name='redoc'),
+
                 ],
                 "api",  # Top-level namespace
             )

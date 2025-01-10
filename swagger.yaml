@@ -59,13 +59,30 @@ paths:
           content:
             application/json:
               example:
-                message: "Account successfully created"
+                {
+                  username: TheFirstUser,
+                  firstName: User,
+                  lastName: NotUser,
+                  email: theuseremail@gmail.com,
+                  phoneNumber: "+1234567890",
+                  password: Weneedmorebananasthan1!,
+                  password2: Weneedmorebananasthan1!,
+                  "isTeamMember": false,
+                  "isAdmin": false,
+                  "isStaff": false
+                }
         '400':
-          description: Stay on the same page
+          description: Bad request
           content:
             application/json:
-              example:
-                message: "Entered data is not valid"
+              schema:
+                type: object
+                example:
+                  {
+                    "field_name": [
+                      "This field is required."
+                    ]
+                  }
 
   /api/users/login/:
     post:
@@ -122,41 +139,66 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                    name:
-                      type: string
-                    owner:
-                      type: string
-                    createdAt:
-                      type: string
-                      format: date
-                    accepted:
-                      type: boolean
-                    status:
-                      type: string
-                      default: active
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Total number of projects.
+                  next:
+                    type: string
+                    format: uri
+                    nullable: true
+                    description: Link to the next page of results.
+                  previous:
+                    type: string
+                    format: uri
+                    nullable: true
+                    description: Link to the previous page of results.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Unique identifier for the project.
+                        name:
+                          type: string
+                          description: Name of the project.
+                        owner:
+                          type: string
+                          description: Name of the project owner.
+                        createdAt:
+                          type: string
+                          format: date
+                          description: Date when the project was created.
+                        accepted:
+                          type: boolean
+                          description: Indicates whether the project was accepted.
+                        status:
+                          type: string
+                          default: active
+                          description: Current status of the project.
               example:
-                - {
-                  id: 1,
-                  name: project1,
-                  owner: John,
-                  createdAt: 2024-11-30,
-                  accepted: true,
-                  status: active
-                }
-                - {
-                  id: 2,
-                  name: project2,
-                  owner: John,
-                  createdAt: 2024-11-30,
-                  accepted: true,
-                  status: active
-                }
+                count: 1
+                next: http://127.0.0.1:8000/api/users/dashboard/?page=2
+                previous: http://127.0.0.1:8000/api/users/dashboard/?page=1
+                results:
+                  - id: 1
+                    name: "FirstUserOrder"
+                    owner: "OwnerName"
+                    createdAt: "2025-01-09"
+                    accepted: false
+                    status: "pending"
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  detail: Authentication credentials were not provided.
+
 
   /api/orders/create/:
     post:
@@ -214,40 +256,26 @@ paths:
                     format: date
                   updatedAt:
                     type: string
+                    nullable: false
                     format: date
                   acceptedAt:
                     type: string
+                    nullable: true
                     format: date
                   accepted:
                     type: boolean
                     default: false
                   team:
                     type: integer
+                    nullable: true
                     description: team ID
                   tasks:
                     type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        title:
-                          type: string
-                        description:
-                          type: string
-                        executor:
-                          type: string
-                          description: Executor name
-                        status:
-                          type: string
-                          default: pending
-                        deadline:
-                          type: string
-                          format: date
                   status:
                     type: string
+                    default: "pending"
                 example:
-                  id: 42
+                  id: 1
                   owner: 1
                   name: New Project
                   description: Project description
@@ -258,8 +286,19 @@ paths:
                   accepted: false
                   team: null
                   tasks: [ ]
-                  status: active
-
+                  status: pending
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  {
+                    "field_name": [
+                      "This field is required."
+                    ]
+                  }
         '403':
           description: User not authorized
           content:
@@ -267,7 +306,7 @@ paths:
               schema:
                 type: object
                 example:
-                  detail: You do not have permission to perform this action.
+                  detail: Authentication credentials were not provided.
 
   /api/orders/edit/{id}:
     patch:
@@ -309,12 +348,15 @@ paths:
                     type: string
                     format: date
                     description: Set automatically when a request is sent
+                  status:
+                    type: string
                 example:
                   id: 1
                   name: New Project Name
                   description: New description
                   deadline: 2026-11-30
                   updatedAt: 2024-11-30
+                  string: pending
         '400':
           description: Stay on the same page
           content:
@@ -328,69 +370,125 @@ paths:
               schema:
                 type: object
                 example:
-                  detail: You do not have permission to perform this action.
+                  detail: Authentication credentials were not provided.
 
   /api/orders/management/:
     get:
       summary: Get list of incoming orders
-      description: The list used by the platform administration to accept orders and assign the team that will fulfill the order
+      description: Retrieve a paginated list of unaccepted orders based on filtering and sorting criteria.
       parameters:
         - in: header
           name: Authorization
           required: true
           schema:
             type: string
-          description: Bearer token for authentication
+          description: Bearer token for authentication.
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+          description: Filter orders by status (e.g., pending, active).
+        - in: query
+          name: is_accepted
+          required: false
+          schema:
+            type: boolean
+          description: Filter orders by acceptance status (true or false).
+        - in: query
+          name: order_by_date
+          required: false
+          schema:
+            type: string
+          description: Sort orders by creation date ("created_at" for ascending or "-created_at" for descending).
 
       responses:
         '200':
-          description: Return list of new orders
+          description: Successfully retrieved the list of unaccepted orders.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                    name:
-                      type: string
-                    owner:
-                      type: string
-                    description:
-                      type: string
-                    createdAt:
-                      type: string
-                      format: date
-                    status:
-                      type: string
-
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Total number of orders available.
+                  next:
+                    type: string
+                    format: uri
+                    nullable: true
+                    description: Link to the next page of results, if available.
+                  previous:
+                    type: string
+                    format: uri
+                    nullable: true
+                    description: Link to the previous page of results, if available.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Unique ID of the order.
+                        name:
+                          type: string
+                          description: Name of the order.
+                        description:
+                          type: string
+                          description: Description of the order.
+                        deadline:
+                          type: string
+                          format: date
+                          description: Deadline for the order.
+                        createdAt:
+                          type: string
+                          format: date
+                          description: Date when the order was created.
+                        status:
+                          type: string
+                          description: Current status of the order.
               example:
-                - {
-                  id: 1,
-                  name: project1,
-                  owner: John,
-                  description: Some description about this order with ID 1,
-                  createdAt: 2024-11-30,
-                  status: active
-                }
-                - {
-                  id: 2,
-                  name: project2,
-                  owner: John,
-                  description: Some description about this order with ID 2,
-                  createdAt: 2024-11-30,
-                  status: active
-                }
-        '403':
-          description: User not authorized
+                count: 1
+                next: "http://127.0.0.1:8000/api/orders/management/?page=2"
+                previous: "http://127.0.0.1:8000/api/orders/management/?page=1"
+                results:
+                  - id: 1
+                    name: First order name
+                    description: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    deadline: "2025-12-31"
+                    createdAt: "2025-01-09"
+                    status: pending
+                  - id: 2
+                    name: Second order name
+                    description: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    deadline: "2025-12-31"
+                    createdAt: "2025-01-09"
+                    status: pending
+        '400':
+          description: Validation error occurred during request.
           content:
             application/json:
               schema:
                 type: object
                 example:
-                  detail: You do not have permission to perform this action.
+                  detail: Invalid query parameter.
+        '403':
+          description: User is not authorized to view orders.
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  detail: Authentication credentials were not provided.
+        '500':
+          description: Server error occurred while retrieving orders.
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error: An error occurred while retrieving orders.
 
   /api/orders/management/{id}:
     patch:
@@ -456,7 +554,7 @@ paths:
               example:
                 detail: "No Order matches the given query."
 
-  /api/users/team/:
+  /api/users/teams/:
     get:
       summary: Retrieve a list of teams
       parameters:
@@ -489,8 +587,10 @@ paths:
                     leader:
                       type: integer
                       description: User ID of the team leader
-                    members_count:
-                      type: integer
+                    list_of_members:
+                      type: array
+                      items:
+                        type: string
                       description: Number of members in the team
                     status:
                       type: string
@@ -498,11 +598,17 @@ paths:
               example:
                 - id: 1
                   leader: 1
-                  members_count: 4
+                  "list_of_members": [
+                    "FirstMember",
+                    "SecondMember"
+                  ]
                   status: available
                 - id: 2
                   leader: 2
-                  members_count: 3
+                  "list_of_members": [
+                    "NextFirstMember",
+                    "NextSecondMember"
+                  ]
                   status: unavailable
         '401':
           description: Unauthorized
@@ -578,8 +684,14 @@ paths:
           description: Bad request
           content:
             application/json:
-              example:
-                detail: "Invalid input data"
+              schema:
+                type: object
+                example:
+                  {
+                    "field_name": [
+                      "This field is required."
+                    ]
+                  }
 
   /api/users/team/edit/{id}:
     patch:
@@ -619,12 +731,12 @@ paths:
               required:
                 - list_of_members
             example:
-              leader: 1
+              leader_id: 1
               list_of_members: [ 2, 3 ]
               status: available
 
       responses:
-        '201':
+        '200':
           description: Team successfully updated
           content:
             application/json:
@@ -670,9 +782,22 @@ paths:
           description: Bad request
           content:
             application/json:
-              example:
-                detail: "Invalid input data"
+              schema:
+                type: object
+                example:
+                  {
+                    "field_name": [
+                      "This field is required."
+                    ]
+                  }
         '401':
+          description: Unauthorized
+          content:
+            application/json:
+              example:
+                detail: "Authentication credentials were not provided."
+
+        '403':
           description: Unauthorized
           content:
             application/json:
@@ -739,12 +864,19 @@ paths:
                 order: 1
                 status: pending
                 deadline: 2024-12-09
-        "400":
+        '400':
           description: Bad request
           content:
             application/json:
-              example:
-                detail: "Invalid input data"
+              schema:
+                type: object
+                example:
+                  {
+                    "field_name": [
+                      "This field is required."
+                    ]
+                  }
+
         '403':
           description: User not authorized
           content:
@@ -752,7 +884,7 @@ paths:
               schema:
                 type: object
                 example:
-                  detail: You do not have permission to perform this action.
+                  detail: Authentication credentials were not provided.
 
   /api/tasks/:
     get:
@@ -768,35 +900,86 @@ paths:
           name: status
           schema:
             type: string
+            default: active
           description: Filter tasks by status (e.g., "pending", "completed").
         - in: query
           name: executor
           schema:
             type: integer
           description: Filter tasks by team member ID to view their tasks.
+
       responses:
         "200":
           description: Successfully retrieved tasks
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Total number of projects.
+                  next:
+                    type: string
+                    format: uri
+                    nullable: true
+                    description: Link to the next page of results.
+                  previous:
+                    type: string
+                    format: uri
+                    nullable: true
+                    description: Link to the previous page of results.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        title:
+                          type: string
+                        description:
+                          type: string
+                        executor:
+                          type: integer
+                        team:
+                          type: integer
+                        order:
+                          type: integer
+                        status:
+                          type: string
+                        deadline:
+                          type: string
+                          format: date
               example:
-                tasks:
-                  - id: 1
-                    title: First task
-                    description: Task description
-                    executor: 1
-                    team: 1
-                    order: 1
-                    status: pending
-                    deadline: 2024-12-09
-                  - id: 2
-                    title: Second task
-                    description: Another task description
-                    executor: 2
-                    team: 1
-                    order: 1
-                    status: completed
-                    deadline: 2024-12-10
+                {
+                  "count": 3,
+                  "next": "http://127.0.0.1:8000/api/tasks/?page=2",
+                  "previous": "http://127.0.0.1:8000/api/tasks/?page=1",
+                  "results": [
+                    {
+                      "id": 1,
+                      "title": "First task",
+                      "description": "Task description",
+                      "executor": 1,
+                      "team": 1,
+                      "order": 1,
+                      "status": "pending",
+                      "deadline": "2025-12-09"
+                    },
+                    {
+                      "id": 2,
+                      "title": "Second task",
+                      "description": "Task description",
+                      "executor": 1,
+                      "team": 1,
+                      "order": 1,
+                      "status": "pending",
+                      "deadline": "2025-12-09"
+                    }
+                  ]
+                }
+
         '403':
           description: User not authorized
           content:
@@ -804,7 +987,7 @@ paths:
               schema:
                 type: object
                 example:
-                  detail: You do not have permission to perform this action.
+                  detail: Authentication credentials were not provided.
 
   /api/tasks/edit/{id}/:
     patch:
@@ -863,12 +1046,18 @@ paths:
                 order: 1
                 status: pending
                 deadline: 2024-12-15
-        "400":
+        '400':
           description: Bad request
           content:
             application/json:
-              example:
-                detail: "Invalid input data"
+              schema:
+                type: object
+                example:
+                  {
+                    "field_name": [
+                      "This field is required."
+                    ]
+                  }
         '403':
           description: User not authorized
           content:
@@ -876,5 +1065,39 @@ paths:
               schema:
                 type: object
                 example:
-                  detail: You do not have permission to perform this action.
+                  detail: Authentication credentials were not provided.
 
+  /api/tasks/delete/{id}/:
+    delete:
+      summary: Delete a specific task
+      description: Deletes a task by its ID. Only team members or administrators can perform this action.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the task to delete.
+      responses:
+        "204":
+          description: Task successfully deleted.
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  detail: Authentication credentials were not provided.
+        "500":
+          description: An error occurred while deleting the task.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message.
+              example:
+                error: An error occurred while deleting the task.

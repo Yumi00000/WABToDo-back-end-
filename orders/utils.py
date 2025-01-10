@@ -8,6 +8,21 @@ from users.models import Team
 
 
 def change_date_format(date: datetime) -> str | None:
+    """
+        Changes the format of a given date to 'YYYY-MM-DD' format.
+
+        This function accepts a datetime object and formats it to the 'YYYY-MM-DD'
+        string format. It returns the formatted string if successful or None
+        in case of invalid input, such as unsupported types or invalid datetime
+        values.
+
+        Parameters:
+            date (datetime): The datetime object to be formatted.
+
+        Returns:
+            str | None: The formatted date string in 'YYYY-MM-DD' format or None
+            if an error occurs.
+    """
     try:
         old_format = date
         valid_format = old_format.strftime("%Y-%m-%d")
@@ -18,6 +33,14 @@ def change_date_format(date: datetime) -> str | None:
 
 
 class OrderManager:
+    """
+    Manages order-related operations by providing static methods for retrieving teams, accepting orders, closing
+    orders, and changing assigned teams.
+
+    This class centralizes the handling of orders and associated team instances, ensuring that operations like updating
+    order statuses, managing team availability, and reassigning teams are performed consistently. It enforces
+    business logic such as team availability and order status transitions.
+    """
     @staticmethod
     def get_team(attrs: dict):
         try:

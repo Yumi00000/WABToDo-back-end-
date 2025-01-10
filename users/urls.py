@@ -17,16 +17,13 @@ router.register("chat/edit", views.EditChatView, basename="edit_chat")
 router.register("chat/info", views.ChatView, basename="chat_info")
 router.register("chat/list", views.ChatListView, basename="chat_list")
 router.register("edit", views.EditUserView, basename="edit_user")
+
 urlpatterns = router.urls
 urlpatterns += [
     path("activate/<user_signed>", views.ActivateView.as_view(), name="activate"),
     path("login/", views.LoginView.as_view(), name="account_login"),
     path("google-oauth2/login-raw/", GoogleLoginRedirectApi.as_view(), name="login-raw"),
     path("google-oauth2/callback-raw/", views.GoogleLoginApi.as_view(), name="callback-raw"),
-    re_path(
-        "registration/account-confirm-email/(?P<key>[-:\w]+)/$",
-        ConfirmEmailView.as_view(),
-        name="account_confirm_email",
-    ),
     path("", include("dj_rest_auth.urls")),
+ path('logout/', views.LogoutView.as_view(), name='logout'),
 ]

@@ -10,7 +10,23 @@ from users.tasks import send_email
 
 def send_activation_email(request, user: CustomUser) -> None:
     """
-    Sends an activation email to the user
+    Sends an activation email to a user with a signed URL.
+
+    This function generates a signed URL containing the user's ID and sends it via
+    email. The signed URL is constructed using the Django Signer utility and the
+    user's ID is securely embedded within the link. This link can be used to
+    activate the user's account. The email is sent asynchronously using a celery
+    task.
+
+    Args:
+        request: HttpRequest
+            The HTTP request object, used to build the absolute activation URL.
+        user: CustomUser
+            The user object to whom the activation email will be sent. The email
+            ID for the user is fetched from this object.
+
+    Returns:
+        None
     """
     user_signed = Signer().sign(user.id)
     signed_url = request.build_absolute_uri(f"/api/users/activate/{user_signed}")
@@ -19,7 +35,24 @@ def send_activation_email(request, user: CustomUser) -> None:
 
 
 class PasswordValidator:
+    """
+    Manages and validates password constraints for a given set of user attributes.
 
+    This class is responsible for validating a password based on various rules and user data,
+    including verifying the presence of capital letters and numbers, and ensuring the password
+    does not contain personal information like the username, first name, last name, or email.
+    It also checks for forbidden patterns such as spaces in the password. The class is designed
+    to evaluate these constraints efficiently and return a boolean result indicating whether
+    the password adheres to all specified rules.
+
+    Attributes:
+        _attrs: dict
+            A dictionary of user attributes used for validation including password, username,
+            first name, last name, and email.
+        _password: str
+            The password string being validated.
+
+    """
     def __init__(self):
         self._attrs = {}
         self._password = ""
@@ -118,7 +151,23 @@ class PasswordValidator:
 
 
 class TokenManager:
+    """
+    Manages the creation, caching, and cleanup of authentication tokens for users.
 
+    The TokenManager class provides functionalities to retrieve or create authentication
+    tokens tied to a specific user and user agent, manage the caching of tokens to
+    improve access efficiency, and clean up expired tokens from the database. It is
+    designed to facilitate secure and efficient handling of authentication tokens in
+    an application.
+
+    Methods:
+        - get_or_create_token: Retrieves or creates an authentication token for a
+          user with respect to the user agent.
+        - _cache_token: Caches the authentication token if it has a significant
+          remaining lifetime.
+        - remove_from_cache: Removes a specific token from the cache by its key.
+        - cleanup_expired_tokens: Deletes all expired tokens from the database.
+    """
     def get_or_create_token(self, user, user_agent):
         token = CustomAuthToken.objects.filter(user=user, user_agent=user_agent).first()
 

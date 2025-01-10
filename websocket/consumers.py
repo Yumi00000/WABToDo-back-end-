@@ -21,15 +21,62 @@ logger = logging.getLogger(__name__)
 
 @sync_to_async
 def get_username(user_pk):
+    """
+    A function to asynchronously retrieve the username of a user based on their
+    primary key.
+
+    This function is designed to fetch the username of a specific user by their
+    primary key from the database and make the operation compatible with async
+    code through the sync_to_async decorator.
+
+    Arguments:
+        user_pk (int): The primary key of the user whose username will be
+                       retrieved.
+
+    Returns:
+        str: The username of the user.
+    """
     return CustomUser.objects.get(id=user_pk).username
 
 
 @sync_to_async
 def get_recipients_emails(recipients_pk):
+    """
+    Retrieve the email addresses of recipients based on their primary keys.
+
+    This function fetches the email addresses of users by retrieving them from the
+    database using their primary keys.
+
+    Parameters:
+        recipients_pk (list[int]): A list of primary keys identifying the recipients.
+
+    Returns:
+        list[str]: A list of email addresses corresponding to the provided primary keys.
+    """
     return [CustomUser.objects.get(id=recipient_pk).email for recipient_pk in recipients_pk]
 
 
 class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
+    """
+    BaseAsyncWebsocketConsumer class is designed to handle WebSocket connections and
+    manage communication between a Django application and clients asynchronously.
+
+    This class serves as a foundation for creating WebSocket consumers that require
+    group-based communication, data streaming, and sending existing data in chunks
+    to connected clients. It provides methods to handle connection establishment,
+    disconnection, and synchronous interaction with external tasks or services.
+
+    Attributes:
+        headers (dict): Stores headers retrieved from the WebSocket scope.
+        group_name (str or None): Unique identifier for the WebSocket group.
+        instance (Any or None): Represents a model instance associated with the
+            consumer.
+        instance_serializer (Any or None): Serializer class linked to the instance.
+        type (Any or None): Type indicator for custom usage.
+        pk (Any or None): Primary key extracted from the URL route.
+        filter (str): Field name used for filtering data.
+        batch_size (int): Number of data records to fetch or send per batch.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.headers = {}
@@ -75,6 +122,50 @@ class BaseAsyncWebsocketConsumer(AsyncWebsocketConsumer):
 
 
 class CommentConsumer(BaseAsyncWebsocketConsumer):
+    """
+    Handles WebSocket communication for managing comments, including creating, updating,
+    deleting, and retrieving comment data in real time.
+
+    This class extends BaseAsyncWebsocketConsumer and manages real-time communication
+    via WebSocket for a group called "comments". It processes incoming actions to handle
+    CRUD operations on comments, validates input data, and sends serialized responses
+    back to the WebSocket group. It can also handle batch data retrieval for pagination.
+    Serialization and validation are performed using Django REST Framework serializers,
+    and permission checks are implemented where necessary.
+
+    Attributes:
+        group_name: The name of the WebSocket group ("comments").
+        instance: The model associated with the consumer (Comment).
+        type: The type of action broadcasted ("send_comment").
+        instance_serializer: The serializer used for serializing Comment objects.
+        filter: The filtering field identifier used for batch data retrieval ("task_id").
+
+    Methods:
+        __init__(*args, **kwargs)
+            Initializes the WebSocket consumer, setting up default attributes.
+
+        disconnect(close_code: int)
+            Disconnects the WebSocket and removes it from the group.
+
+        receive(text_data: str, bytes_data: Optional[bytes])
+            Processes incoming WebSocket messages and routes them to the appropriate handler
+            based on the action specified in the payload.
+
+        handle_create(data: Dict)
+            Handles the creation of a new comment. Validates and serializes the
+            input data before saving the comment in the database.
+
+        handle_update(data: Dict)
+            Handles updating an existing comment. Ensures the comment belongs to
+            the member performing the update and validates input fields.
+
+        handle_delete(data: Dict)
+            Handles deleting an existing comment. Ensures permission and existence
+            before performing the deletion.
+
+        send_comment(event: Dict)
+            Sends a serialized comment object or event message to a WebSocket client.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.group_name = "comments"
@@ -200,6 +291,22 @@ class CommentConsumer(BaseAsyncWebsocketConsumer):
 
 
 class NotificationConsumer(BaseAsyncWebsocketConsumer):
+    """
+    A WebSocket consumer to manage notifications for users.
+
+    This consumer handles WebSocket communication for creating, deleting, fetching
+    notifications, and sending out notification updates in real-time. It leverages Django
+    channels for WebSocket handling and database synchronization for notification data.
+    The class is designed to interact with Notification objects and uses serializers
+    for data validation and processing.
+
+    Attributes:
+    group_name: A str representing the group to which WebSocket notifications are sent.
+    instance: The Notification model class managing notification database objects.
+    type: A str indicating the type key used for identifying messages.
+    instance_serializer: The serializer class for validating and serializing notifications.
+    filter: A str representing the key used to filter notifications for a particular user.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.group_name = "notifications"
@@ -301,6 +408,24 @@ class NotificationConsumer(BaseAsyncWebsocketConsumer):
 
 
 class MessageConsumer(BaseAsyncWebsocketConsumer):
+    """
+    WebSocket consumer class to handle chat message operations including creation, update,
+    deletion, and notification handling.
+
+    The `MessageConsumer` class is designed to handle real-time messaging within chat
+    applications. It processes incoming WebSocket messages, performs necessary database
+    operations, and sends data to relevant channels or clients. The consumer also includes
+    functionality for handling message batching, broadcasting updates, and sending
+    custom notifications to chat participants or specific users.
+
+    Attributes:
+        group_name (str): Name of the WebSocket group for broadcast messaging.
+        instance (Type[Message]): Reference to the model class for chat messages.
+        type (str): Identifier type for WebSocket message events.
+        instance_serializer (Type[MessageSerializer]): Reference to the serializer class for
+            chat message objects.
+        filter (str): Attribute used to filter messages based on a specific property.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.group_name = "chat"

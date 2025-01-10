@@ -12,6 +12,38 @@ from users.user_credentials import GoogleAccessTokens
 
 
 class GoogleRawLoginFlowService:
+    """
+    Service class for managing Google OAuth 2.0 login flow.
+
+    This class provides methods to handle the various stages of the Google OAuth 2.0
+    login flow, including generating authorization URLs, acquiring access and ID
+    tokens, and retrieving user information from Google. It requires configuration
+    and credentials to communicate with the Google OAuth 2.0 endpoints.
+
+    Attributes:
+        API_URI: Lazy-resolved URL for the API callback endpoint.
+        GOOGLE_AUTH_URL: URL to request an OAuth authorization code from Google.
+        GOOGLE_ACCESS_TOKEN_OBTAIN_URL: URL to exchange the authorization code
+            for access and ID tokens.
+        GOOGLE_USER_INFO_URL: URL to fetch user information from Google using the
+            access token.
+        SCOPES: List of scopes defining the level of access being requested
+            during the Google authentication process.
+
+    Methods:
+        __init__: Initializes the service and loads Google client credentials.
+        _generate_state_session_token: Generates a secure random state token
+            used in the authorization process to prevent CSRF attacks.
+        _get_redirect_uri: Constructs the redirect URI required for the OAuth
+            flow, combining the domain and API callback endpoint.
+        get_authorization_url: Assembles the complete Google authorization URL
+            with required query parameters and generates a state token.
+        get_user_info: Retrieves user information from Google using the access
+            token provided by the application.
+        get_tokens: Exchanges the OAuth authorization code for access and ID
+            tokens to facilitate communication with Google APIs.
+
+    """
     API_URI = reverse_lazy("api:users:callback-raw")
     GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/auth"
     GOOGLE_ACCESS_TOKEN_OBTAIN_URL = "https://oauth2.googleapis.com/token"
